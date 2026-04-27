@@ -18,7 +18,8 @@
       },
       "permissions": [
         "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.READ_EXTERNAL_STORAGE"
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "plugins": [
@@ -42,9 +43,11 @@
       "policy": "appVersion"
     },
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "REEMPLAZA-CON-TU-PROJECT-ID"
+        "projectId": "820b2401-3ea5-45bd-83c3-c33ba021d4d4"
       }
-    }
+    },
+    "owner": "dvilmar"
   }
 }
