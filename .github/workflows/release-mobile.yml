@@ -1,9 +1,9 @@
 name: Release · Mobile Build
 
 on:
-  # Lanzamiento automático con cada push a main
+  # Lanzamiento automático con cada push a main o develop
   push:
-    branches: [main]
+    branches: [main, develop]
 
   # También se puede lanzar manualmente con opciones
   workflow_dispatch:
