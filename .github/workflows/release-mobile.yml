@@ -1,8 +1,11 @@
 name: Release · Mobile Build
 
-# Ejecuta esto cuando cambies algo nativo (nueva librería, permisos, etc.)
-# Para cambios solo de JS no hace falta — el OTA update es suficiente
 on:
+  # Lanzamiento automático con cada push a main
+  push:
+    branches: [main]
+
+  # También se puede lanzar manualmente con opciones
   workflow_dispatch:
     inputs:
       platform:
@@ -18,9 +21,9 @@ on:
 
 jobs:
   build:
-    name: EAS Build · ${{ inputs.platform }} · ${{ inputs.profile }}
+    name: EAS Build · ${{ inputs.platform || 'android' }} · ${{ inputs.profile || 'preview' }}
     runs-on: ubuntu-latest
-    environment: ${{ inputs.profile }}
+    environment: production
     defaults:
       run:
         working-directory: tavero-app
@@ -43,11 +46,12 @@ jobs:
       - name: EAS Build
         run: |
           eas build \
-            --platform ${{ inputs.platform }} \
-            --profile ${{ inputs.profile }} \
+            --platform ${{ inputs.platform || 'android' }} \
+            --profile ${{ inputs.profile || 'preview' }} \
             --non-interactive \
             --no-wait
         env:
+          CI: '1'
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           EXPO_PUBLIC_MENU_URL: ${{ secrets.EXPO_PUBLIC_MENU_URL }}
