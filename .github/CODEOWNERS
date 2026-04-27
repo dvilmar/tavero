@@ -1,0 +1,14 @@
+# Global owner — reviews required for everything
+* @danielvilar
+
+# Web only
+/tavero-web/ @danielvilar
+
+# Mobile only
+/tavero-app/ @danielvilar
+
+# Database — extra care required
+/tavero-backend/supabase/migrations/ @danielvilar
+
+# CI/CD — must be reviewed
+/.github/ @danielvilar
