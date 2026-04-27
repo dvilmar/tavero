@@ -1,0 +1,51 @@
+services:
+
+  # ──────────────────────────────────────────────
+  # Next.js — menú web público
+  # ──────────────────────────────────────────────
+  tavero-web:
+    build:
+      context: ./tavero-web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    container_name: tavero-web
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+    networks:
+      - tavero-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ──────────────────────────────────────────────
+  # Gateway — reverse proxy + SSL termination
+  # ──────────────────────────────────────────────
+  tavero-gateway:
+    image: nginx:1.27-alpine
+    container_name: tavero-gateway
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./tavero-gateway/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./tavero-gateway/certs:/etc/nginx/certs:ro
+    depends_on:
+      tavero-web:
+        condition: service_healthy
+    networks:
+      - tavero-net
+
+networks:
+  tavero-net:
+    driver: bridge

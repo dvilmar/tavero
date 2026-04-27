@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 240 253 250;
+  --surface: 255 255 255;
+  --primary: 19 78 74;
+  --primaryLight: 15 118 110;
+  --accent: 13 148 136;
+  --accentSoft: 204 251 241;
+  --muted: 100 116 139;
+  --mutedLight: 148 163 184;
+  --border: 153 246 228;
+  --borderSoft: 204 251 241;
+  --danger: 220 38 38;
+  --success: 22 163 74;
+}
+
+.dark {
+  --background: 15 23 42;
+  --surface: 30 41 59;
+  --primary: 241 245 249;
+  --primaryLight: 203 213 225;
+  --accent: 45 212 191;
+  --accentSoft: 19 78 74;
+  --muted: 148 163 184;
+  --mutedLight: 100 116 139;
+  --border: 51 65 85;
+  --borderSoft: 30 41 59;
+  --danger: 248 113 113;
+  --success: 74 222 128;
+}
