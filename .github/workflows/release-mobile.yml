@@ -56,8 +56,9 @@ jobs:
           EXPO_PUBLIC_MENU_URL: ${{ secrets.EXPO_PUBLIC_MENU_URL }}
 
       # Push a main → subir el AAB a Play Store (track: internal)
+      # Solo se ejecuta cuando el secret GOOGLE_SERVICE_ACCOUNT_KEY está configurado
       - name: Play Store · Submit (internal track)
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && secrets.GOOGLE_SERVICE_ACCOUNT_KEY != ''
         run: |
           echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}' > /tmp/gsa.json
           eas submit \
