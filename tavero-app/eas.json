@@ -24,12 +24,22 @@
       },
       "ios": {
         "simulator": false
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://xgvpnccvurduvzptfvax.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_f4QOADBVJDkqv3Z_CF5O3g_MntIMEOL",
+        "EXPO_PUBLIC_MENU_URL": "https://tavero-web.vercel.app/menu"
       }
     },
     "production": {
       "channel": "production",
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://xgvpnccvurduvzptfvax.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_f4QOADBVJDkqv3Z_CF5O3g_MntIMEOL",
+        "EXPO_PUBLIC_MENU_URL": "https://tavero-web.vercel.app/menu"
       }
     }
   },
