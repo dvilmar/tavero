@@ -6,6 +6,8 @@ export type Restaurant = {
   description: string | null
   logo_url: string | null
   is_active: boolean
+  menu_font: string | null
+  menu_accent_color: string | null
   created_at: string
   updated_at: string
 }

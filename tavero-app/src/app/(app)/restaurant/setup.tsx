@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native'
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { supabase } from '@/lib/supabase'
 import { pickImage, uploadImage } from '@/lib/storage'
@@ -35,6 +35,7 @@ export default function RestaurantSetupScreen() {
   const [loading, setLoading]         = useState(false)
   const [uploading, setUploading]     = useState(false)
   const [errors, setErrors]           = useState<{ name?: string }>({})
+  const [serverError, setServerError] = useState('')
 
   const isEditing = !!restaurant
   const slug = isEditing ? restaurant!.slug : slugify(name)
@@ -68,6 +69,7 @@ export default function RestaurantSetupScreen() {
 
   const handleSave = async () => {
     if (!validate()) return
+    setServerError('')
     setLoading(true)
 
     if (isEditing) {
@@ -75,7 +77,7 @@ export default function RestaurantSetupScreen() {
         .from('restaurants')
         .update({ name, description, logo_url: logoUrl })
         .eq('id', restaurant.id)
-      if (error) { Alert.alert('Error', error.message); setLoading(false); return }
+      if (error) { setServerError(error.message); setLoading(false); return }
     } else {
       const finalSlug = slugify(name)
       const { data, error } = await supabase
@@ -84,7 +86,7 @@ export default function RestaurantSetupScreen() {
         .select('id')
         .single()
       if (error) {
-        Alert.alert('Error', error.code === '23505'
+        setServerError(error.code === '23505'
           ? 'Ya existe un bar con un nombre muy parecido. Cámbialo ligeramente.'
           : error.message)
         setLoading(false)
@@ -110,8 +112,8 @@ export default function RestaurantSetupScreen() {
       {/* Header */}
       <View className="px-6 pt-14 pb-4 bg-white border-b border-border flex-row items-center">
         {isEditing && (
-          <Pressable onPress={() => router.back()} className="mr-4">
-            <Text className="text-accent font-semibold text-base">←</Text>
+          <Pressable onPress={() => router.back()} className="mr-4 w-9 h-9 rounded-full bg-borderSoft items-center justify-center" hitSlop={8}>
+            <Text className="text-primary text-2xl leading-none" style={{ marginTop: -2 }}>‹</Text>
           </Pressable>
         )}
         <View className="flex-1">
@@ -163,6 +165,12 @@ export default function RestaurantSetupScreen() {
           multiline
           numberOfLines={3}
         />
+
+        {serverError ? (
+          <View className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+            <Text className="text-red-600 text-sm font-medium">{serverError}</Text>
+          </View>
+        ) : null}
 
         <Button
           label={isEditing ? 'Guardar cambios' : 'Crear bar'}

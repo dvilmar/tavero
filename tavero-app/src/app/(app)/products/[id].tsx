@@ -17,13 +17,13 @@ import { useToast } from '@/hooks/useToast'
 import type { Category } from '@/lib/types'
 
 const DAYS = [
-  { label: 'Dom', value: 0 },
   { label: 'Lun', value: 1 },
   { label: 'Mar', value: 2 },
   { label: 'Mié', value: 3 },
   { label: 'Jue', value: 4 },
   { label: 'Vie', value: 5 },
   { label: 'Sáb', value: 6 },
+  { label: 'Dom', value: 0 },
 ]
 
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6]
@@ -198,8 +198,8 @@ export default function ProductEditScreen() {
     >
       {/* Header */}
       <View className="px-6 pt-14 pb-4 bg-white border-b border-border flex-row items-center">
-        <Pressable onPress={() => router.back()} className="mr-4">
-          <Text className="text-accent font-semibold text-base">←</Text>
+        <Pressable onPress={() => router.back()} className="mr-4 w-9 h-9 rounded-full bg-borderSoft items-center justify-center" hitSlop={8}>
+          <Text className="text-primary text-2xl leading-none" style={{ marginTop: -2 }}>‹</Text>
         </Pressable>
         <Text className="text-xl font-bold text-primary flex-1">
           {isNew ? 'Nuevo producto' : 'Editar producto'}
@@ -218,7 +218,7 @@ export default function ProductEditScreen() {
           imageUrl={imageUrl}
           onPress={handlePickImage}
           uploading={uploading}
-          aspectRatio={4 / 3}
+          aspectRatio={16 / 9}
         />
 
         {/* Nombre */}

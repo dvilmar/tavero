@@ -1,9 +1,7 @@
-import { useCallback, useRef, useState } from 'react'
-import {
-  Alert, Animated, Modal, PanResponder, Pressable,
-  RefreshControl, ScrollView, Switch, Text, View,
-} from 'react-native'
+import { useCallback, useState } from 'react'
+import { Alert, Modal, Pressable, Switch, Text, View } from 'react-native'
 import { useFocusEffect } from 'expo-router'
+import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist'
 import { supabase } from '@/lib/supabase'
 import { useRestaurant } from '@/context/RestaurantContext'
 import { haptic } from '@/lib/haptics'
@@ -20,97 +18,16 @@ import type { Category } from '@/lib/types'
 
 type FormState = { name: string; description: string }
 const emptyForm: FormState = { name: '', description: '' }
-const ITEM_H = 120
 
-// ─── CategoryRow ─────────────────────────────────────────────────────────────
-
-type RowProps = {
-  item: Category
-  index: number
-  total: number
-  onReorder: (from: number, to: number) => void
-  onToggle: (cat: Category) => void
-  onEdit: (cat: Category) => void
-  onDelete: (cat: Category) => void
-}
-
-function CategoryRow({ item, index, total, onReorder, onToggle, onEdit, onDelete }: RowProps) {
-  const pan = useRef(new Animated.Value(0)).current
-  const [dragging, setDragging] = useState(false)
-
-  const idxRef = useRef(index)
-  const totRef = useRef(total)
-  idxRef.current = index
-  totRef.current = total
-
-  const ph = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => { setDragging(true); haptic.light() },
-      onPanResponderMove: (_, g) => { pan.setValue(g.dy) },
-      onPanResponderRelease: (_, g) => {
-        setDragging(false)
-        const to = Math.max(0, Math.min(totRef.current - 1, idxRef.current + Math.round(g.dy / ITEM_H)))
-        Animated.spring(pan, { toValue: 0, useNativeDriver: false }).start()
-        if (to !== idxRef.current) onReorder(idxRef.current, to)
-      },
-      onPanResponderTerminate: () => {
-        setDragging(false)
-        Animated.spring(pan, { toValue: 0, useNativeDriver: false }).start()
-      },
-    })
-  ).current
-
+function DragHandle() {
   return (
-    <Animated.View
-      style={{
-        transform: [{ translateY: pan }],
-        zIndex: dragging ? 20 : 1,
-        elevation: dragging ? 8 : 0,
-        marginBottom: 12,
-      }}
-    >
-      <Card className={dragging ? 'opacity-90' : ''}>
-        <View className="flex-row items-start">
-          {/* Drag handle */}
-          <View
-            {...ph.panHandlers}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            className="mr-3 px-1.5 py-4"
-          >
-            <Text className="text-mutedLight text-lg" style={{ letterSpacing: 1 }}>⣿</Text>
-          </View>
-
-          <View className="flex-1 mr-3">
-            <View className="flex-row items-center gap-2 mb-1">
-              <Text className={`font-semibold text-base ${item.is_active ? 'text-primary' : 'text-mutedLight line-through'}`}>
-                {item.name}
-              </Text>
-              <Badge label={item.is_active ? 'Activa' : 'Oculta'} variant={item.is_active ? 'success' : 'muted'} />
-            </View>
-            {item.description ? (
-              <Text className="text-muted text-sm leading-relaxed">{item.description}</Text>
-            ) : null}
-          </View>
-
-          <Switch
-            value={item.is_active}
-            onValueChange={() => onToggle(item)}
-            trackColor={{ true: '#0D9488', false: '#E7E5E4' }}
-            thumbColor="#fff"
-          />
-        </View>
-
-        <View className="flex-row gap-2 mt-4 pt-4 border-t border-borderSoft">
-          <Button label="Editar" onPress={() => onEdit(item)} variant="secondary" className="flex-1 py-2" />
-          <Button label="Eliminar" onPress={() => onDelete(item)} variant="ghost" className="flex-1 py-2" />
-        </View>
-      </Card>
-    </Animated.View>
+    <View style={{ width: 18, gap: 4, alignItems: 'center' }}>
+      {[0, 1, 2].map((i) => (
+        <View key={i} style={{ width: 18, height: 2.5, backgroundColor: '#CBD5E1', borderRadius: 2 }} />
+      ))}
+    </View>
   )
 }
-
-// ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function CategoriesScreen() {
   const { restaurant } = useRestaurant()
@@ -137,7 +54,11 @@ export default function CategoriesScreen() {
   useFocusEffect(useCallback(() => { load() }, [load]))
 
   const openCreate = () => { setEditing(null); setForm(emptyForm); setModalVisible(true) }
-  const openEdit = (cat: Category) => { setEditing(cat); setForm({ name: cat.name, description: cat.description ?? '' }); setModalVisible(true) }
+  const openEdit = (cat: Category) => {
+    setEditing(cat)
+    setForm({ name: cat.name, description: cat.description ?? '' })
+    setModalVisible(true)
+  }
 
   const handleSave = async () => {
     if (!form.name.trim()) { Alert.alert('Error', 'El nombre es obligatorio'); return }
@@ -180,17 +101,56 @@ export default function CategoriesScreen() {
     )
   }
 
-  const handleReorder = async (from: number, to: number) => {
-    if (from === to) return
-    const next = [...categories]
-    const [moved] = next.splice(from, 1)
-    next.splice(to, 0, moved)
-    const reordered = next.map((c, i) => ({ ...c, sort_order: i }))
+  const handleDragEnd = async ({ data }: { data: Category[] }) => {
+    const reordered = data.map((c, i) => ({ ...c, sort_order: i }))
     setCategories(reordered)
+    haptic.light()
     await Promise.all(reordered.map((c) =>
       supabase.from('categories').update({ sort_order: c.sort_order }).eq('id', c.id)
     ))
   }
+
+  const renderItem = ({ item, drag, isActive }: RenderItemParams<Category>) => (
+    <ScaleDecorator>
+      <View style={{ marginBottom: 12, opacity: isActive ? 0.9 : 1 }}>
+        <Card className={isActive ? 'shadow-lg' : ''}>
+          <View className="flex-row items-start">
+            <Pressable
+              onLongPress={() => { haptic.light(); drag() }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              className="mr-3 px-2 py-4 justify-center"
+            >
+              <DragHandle />
+            </Pressable>
+
+            <View className="flex-1 mr-3">
+              <View className="flex-row items-center gap-2 mb-1">
+                <Text className={`font-semibold text-base ${item.is_active ? 'text-primary' : 'text-mutedLight line-through'}`}>
+                  {item.name}
+                </Text>
+                <Badge label={item.is_active ? 'Activa' : 'Oculta'} variant={item.is_active ? 'success' : 'muted'} />
+              </View>
+              {item.description ? (
+                <Text className="text-muted text-sm leading-relaxed">{item.description}</Text>
+              ) : null}
+            </View>
+
+            <Switch
+              value={item.is_active}
+              onValueChange={() => handleToggle(item)}
+              trackColor={{ true: '#0D9488', false: '#E7E5E4' }}
+              thumbColor="#fff"
+            />
+          </View>
+
+          <View className="flex-row gap-2 mt-4 pt-4 border-t border-borderSoft">
+            <Button label="Editar" onPress={() => openEdit(item)} variant="secondary" className="flex-1 py-2" />
+            <Button label="Eliminar" onPress={() => handleDelete(item)} variant="ghost" className="flex-1 py-2" />
+          </View>
+        </Card>
+      </View>
+    </ScaleDecorator>
+  )
 
   return (
     <View className="flex-1 bg-background">
@@ -204,23 +164,13 @@ export default function CategoriesScreen() {
         <EmptyState icon="📂" title="Aún no tienes categorías"
           description="Crea tu primera sección del menú: tapas, bebidas, postres…" />
       ) : (
-        <ScrollView
+        <DraggableFlatList
+          data={categories}
+          onDragEnd={handleDragEnd}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
           contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 20, paddingBottom: 96 }}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor="#0D9488" />}
-        >
-          {categories.map((item, index) => (
-            <CategoryRow
-              key={item.id}
-              item={item}
-              index={index}
-              total={categories.length}
-              onReorder={handleReorder}
-              onToggle={handleToggle}
-              onEdit={openEdit}
-              onDelete={handleDelete}
-            />
-          ))}
-        </ScrollView>
+        />
       )}
 
       <Toast message={toast.message} visible={toast.visible} />
@@ -230,7 +180,7 @@ export default function CategoriesScreen() {
         className="absolute bottom-8 right-5 w-14 h-14 bg-accent rounded-full items-center justify-center"
         style={{ shadowColor: '#0D9488', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 }}
       >
-        <Text className="text-white text-3xl font-light leading-none -mt-0.5">+</Text>
+        <Text style={{ color: '#fff', fontSize: 32, lineHeight: 32, fontWeight: '300', textAlign: 'center' }}>+</Text>
       </Pressable>
 
       <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet">

@@ -1,5 +1,6 @@
+import { useCallback } from 'react'
 import { ActivityIndicator, Image, Pressable, ScrollView, Share, Text, View } from 'react-native'
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
 import QRCode from 'react-native-qrcode-svg'
 import { useAuth } from '@/context/AuthContext'
 import { useRestaurant } from '@/context/RestaurantContext'
@@ -34,7 +35,9 @@ function NavCard({ icon, label, description, onPress }: NavCardProps) {
 
 export default function DashboardScreen() {
   const { signOut, user } = useAuth()
-  const { restaurant, loading } = useRestaurant()
+  const { restaurant, loading, refresh } = useRestaurant()
+
+  useFocusEffect(useCallback(() => { refresh() }, []))
 
   if (loading) {
     return (
@@ -85,24 +88,30 @@ export default function DashboardScreen() {
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-5 pt-16 pb-12">
       {/* Header */}
       <View className="flex-row items-center mb-7">
-        {restaurant.logo_url ? (
-          <Image
-            source={{ uri: restaurant.logo_url }}
-            style={{ width: 52, height: 52, borderRadius: 26 }}
-            resizeMode="cover"
-          />
-        ) : (
-          <View className="w-13 h-13 rounded-full bg-accentSoft items-center justify-center"
-                style={{ width: 52, height: 52 }}>
-            <Text className="text-xl">🏪</Text>
+        <Pressable
+          onPress={() => router.push('/(app)/restaurant/setup')}
+          className="flex-row items-center flex-1"
+          style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+        >
+          {restaurant.logo_url ? (
+            <Image
+              source={{ uri: restaurant.logo_url }}
+              style={{ width: 52, height: 52, borderRadius: 26 }}
+              resizeMode="cover"
+            />
+          ) : (
+            <View className="rounded-full bg-accentSoft items-center justify-center"
+                  style={{ width: 52, height: 52 }}>
+              <Text className="text-xl">🏪</Text>
+            </View>
+          )}
+          <View className="flex-1 ml-3">
+            <Text className="text-[11px] text-muted font-medium uppercase tracking-wider">Tu bar</Text>
+            <Text className="text-xl font-bold text-primary tracking-tight" numberOfLines={1}>
+              {restaurant.name}
+            </Text>
           </View>
-        )}
-        <View className="flex-1 ml-3">
-          <Text className="text-[11px] text-muted font-medium uppercase tracking-wider">Tu bar</Text>
-          <Text className="text-xl font-bold text-primary tracking-tight" numberOfLines={1}>
-            {restaurant.name}
-          </Text>
-        </View>
+        </Pressable>
         <Pressable onPress={signOut} hitSlop={8}>
           <Text className="text-muted text-sm font-medium">Salir</Text>
         </Pressable>
@@ -145,9 +154,9 @@ export default function DashboardScreen() {
         />
         <NavCard
           icon="⚙️"
-          label="Información del bar"
-          description="Edita nombre, logo y descripción"
-          onPress={() => router.push('/(app)/restaurant/setup')}
+          label="Configuración"
+          description="Modo oscuro y preferencias de la app"
+          onPress={() => router.push('/(app)/settings')}
         />
       </View>
     </ScrollView>

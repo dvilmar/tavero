@@ -1,17 +1,20 @@
 import '../../global.css'
 import { Stack } from 'expo-router'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { AuthProvider } from '@/context/AuthContext'
 import { RestaurantProvider } from '@/context/RestaurantContext'
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <RestaurantProvider>
-          <Stack screenOptions={{ headerShown: false }} />
-        </RestaurantProvider>
-      </AuthProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <RestaurantProvider>
+            <Stack screenOptions={{ headerShown: false }} />
+          </RestaurantProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   )
 }

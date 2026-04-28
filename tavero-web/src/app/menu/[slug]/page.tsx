@@ -176,10 +176,14 @@ export default async function MenuPage({ params }: Props) {
             )}
           </main>
 
-          <footer className="py-6 text-center border-t border-border">
+          <footer className="py-6 text-center border-t border-border space-y-1.5">
             <p className="text-xs text-muted">
               Menú digital por{' '}
               <span className="font-semibold text-primary">Tavero</span>
+            </p>
+            <p className="text-[11px] text-muted/70">
+              © {new Date().getFullYear()} Tavero ·{' '}
+              <a href="/privacidad" className="underline hover:text-muted transition-colors">Privacidad</a>
             </p>
           </footer>
         </div>

@@ -19,7 +19,7 @@ export function Header({ title, subtitle, onBack, rightLabel, onRightPress, righ
           hitSlop={12}
           className="w-9 h-9 rounded-full bg-borderSoft items-center justify-center mr-3"
         >
-          <Text className="text-primary text-lg leading-none -mt-0.5">‹</Text>
+          <Text className="text-primary text-2xl leading-none" style={{ marginTop: -2 }}>‹</Text>
         </Pressable>
         <View className="flex-1">
           <Text className="text-lg font-bold text-primary tracking-tight" numberOfLines={1}>
