@@ -9,7 +9,7 @@
     "icon": "./assets/icon.png",
     "splash": {
       "image": "./assets/splash.png",
-      "backgroundColor": "#0D9488"
+      "backgroundColor": "#111111"
     },
     "ios": {
       "supportsTablet": false,
@@ -19,7 +19,7 @@
       "package": "com.tavero.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0D9488"
+        "backgroundColor": "#111111"
       },
       "permissions": [
         "android.permission.READ_MEDIA_IMAGES",

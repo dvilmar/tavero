@@ -1,13 +1,12 @@
 import { useCallback, useMemo, useState } from 'react'
 import {
-  Alert, Image, Pressable, Switch, Text, TextInput, View,
+  Alert, Image, Pressable, ScrollView, Switch, Text, TextInput, View,
 } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useColorScheme } from 'nativewind'
 import {
-  NestableDraggableFlatList,
-  NestableScrollContainer,
+  default as DraggableFlatList,
   RenderItemParams,
   ScaleDecorator,
 } from 'react-native-draggable-flatlist'
@@ -20,6 +19,7 @@ import { Header } from '@/components/ui/Header'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { DragHandle } from '@/components/ui/DragHandle'
 import { ProductRowSkeleton } from '@/components/ui/Skeleton'
+import { DESIGN_TOKENS } from '@/lib/designTokens'
 import type { Category, Product } from '@/lib/types'
 
 type Section = { title: string; catId: string; data: Product[] }
@@ -120,7 +120,7 @@ export default function ProductsScreen() {
           <View className="flex-row items-center">
             {!isSearching && (
               <Pressable
-                onLongPress={() => { haptic.light(); drag() }}
+                onPressIn={() => { haptic.light(); drag() }}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 className="mr-2 px-1.5 py-3 justify-center"
               >
@@ -150,7 +150,7 @@ export default function ProductsScreen() {
               {item.description ? (
                 <Text className="text-muted text-xs mt-0.5" numberOfLines={1}>{item.description}</Text>
               ) : null}
-              <Text className="text-accent font-bold text-sm mt-1">
+              <Text className={`font-bold text-sm mt-1 ${isDark ? 'text-zinc-200' : 'text-accent'}`}>
                 {moneyFormatter.format(Number(item.price))}
               </Text>
             </Pressable>
@@ -158,7 +158,7 @@ export default function ProductsScreen() {
             <Switch
               value={item.is_active}
               onValueChange={() => handleToggle(item)}
-              trackColor={{ true: '#0D9488', false: isDark ? '#4B5563' : '#E7E5E4' }}
+              trackColor={{ true: isDark ? '#FAFAFA' : '#111111', false: isDark ? '#4B5563' : '#E7E5E4' }}
               thumbColor={isDark ? '#F3F4F6' : '#FFFFFF'}
             />
           </View>
@@ -205,7 +205,7 @@ export default function ProductsScreen() {
           description={isSearching ? t('products.emptySearchDesc', { search }) : t('products.emptyDesc')}
         />
       ) : (
-        <NestableScrollContainer
+        <ScrollView
           contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 96 }}
         >
           {filtered.map((section) => (
@@ -213,25 +213,26 @@ export default function ProductsScreen() {
               <Text className="text-[11px] font-bold text-muted uppercase tracking-widest mt-5 mb-2.5 px-1">
                 {section.title}
               </Text>
-              <NestableDraggableFlatList
+              <DraggableFlatList
                 data={section.data}
                 onDragEnd={({ data }) => handleDragEnd(section.catId, data)}
                 keyExtractor={(item) => item.id}
                 renderItem={renderItem}
-                activationDistance={12}
+                scrollEnabled={false}
+                activationDistance={0}
                 autoscrollThreshold={28}
                 autoscrollSpeed={120}
                 dragItemOverflow
               />
             </View>
           ))}
-        </NestableScrollContainer>
+        </ScrollView>
       )}
 
       <Pressable
         onPress={() => { haptic.light(); router.push('/(app)/products/new') }}
         className="absolute bottom-8 right-5 w-14 h-14 bg-accent rounded-full items-center justify-center"
-        style={{ shadowColor: '#0D9488', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 }}
+        style={{ shadowColor: DESIGN_TOKENS.colors.accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 }}
       >
         <Text style={{ color: '#fff', fontSize: 32, lineHeight: 32, fontWeight: '300', textAlign: 'center' }}>+</Text>
       </Pressable>

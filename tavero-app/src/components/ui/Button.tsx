@@ -1,5 +1,7 @@
 import { ActivityIndicator, Pressable, Text } from 'react-native'
+import { useColorScheme } from 'nativewind'
 import { haptic } from '@/lib/haptics'
+import { DESIGN_TOKENS } from '@/lib/designTokens'
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'accent'
 
@@ -29,8 +31,13 @@ const textVariants: Record<Variant, string> = {
 }
 
 export function Button({ label, onPress, variant = 'primary', loading, disabled, className }: Props) {
+  const { colorScheme } = useColorScheme()
+  const isDark = colorScheme === 'dark'
   const isDisabled = disabled || loading
-  const spinnerColor = variant === 'secondary' || variant === 'ghost' ? '#0D9488' : '#fff'
+  const spinnerColor = variant === 'secondary' || variant === 'ghost' ? DESIGN_TOKENS.colors.accent : '#fff'
+  const resolvedTextClass = variant === 'primary' && isDark
+    ? 'text-black font-semibold text-base tracking-tight'
+    : textVariants[variant]
 
   const handlePress = () => {
     haptic.light()
@@ -46,7 +53,7 @@ export function Button({ label, onPress, variant = 'primary', loading, disabled,
     >
       {loading
         ? <ActivityIndicator color={spinnerColor} />
-        : <Text className={textVariants[variant]}>{label}</Text>
+        : <Text className={resolvedTextClass}>{label}</Text>
       }
     </Pressable>
   )

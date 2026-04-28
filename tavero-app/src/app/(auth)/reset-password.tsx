@@ -80,7 +80,7 @@ export default function ResetPasswordScreen() {
           />
 
           {error ? (
-            <View className="bg-red-50 border border-red-100 rounded-xl px-3 py-2.5">
+            <View className="bg-surface border border-danger rounded-xl px-3 py-2.5">
               <Text className="text-danger text-sm leading-relaxed">{error}</Text>
             </View>
           ) : null}

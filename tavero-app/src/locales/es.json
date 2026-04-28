@@ -97,13 +97,13 @@
     "menuPreview": "Vista previa del menú",
     "menuPreviewDesc": "Cómo lo ven tus clientes",
     "menuColors": "Colores del menú",
-    "menuColorsDesc": "Personaliza la apariencia de tu menú",
+    "menuColorsDesc": "Personaliza como se ve tu menú",
     "categories": "Categorías",
     "categoriesDesc": "Gestiona secciones de tu menú",
     "products": "Productos",
     "productsDesc": "Añade y edita platos y bebidas",
     "settings": "Configuración",
-    "settingsDesc": "Modo oscuro y preferencias de la app"
+    "settingsDesc": "Tema y preferencias de la app"
   },
   "settings": {
     "title": "Configuración",
@@ -111,6 +111,13 @@
     "darkMode": "Modo oscuro",
     "darkModeDesc": "Cambia el aspecto de la app",
     "languageSection": "Idioma",
+    "accountSection": "Cuenta",
+    "signOutTitle": "Cerrar sesión",
+    "signOutConfirm": "¿Seguro que quieres cerrar sesión?",
+    "deleteAccount": "Eliminar cuenta",
+    "deleteAccountTitle": "Eliminar cuenta",
+    "deleteAccountConfirm": "Vas a salir de la app y abrir la página para eliminar tu cuenta. ¿Continuar?",
+    "deleteAccountOpenError": "No se pudo abrir la página de eliminación de cuenta.",
     "spanish": "Español",
     "english": "English"
   },
@@ -119,7 +126,7 @@
     "titleEdit": "Información del bar",
     "subtitleCreate": "Configura tu bar para empezar",
     "subtitleEdit": "Actualiza los datos de tu bar",
-    "logoLabel": "Logo del bar (opcional)",
+    "logoLabel": "Logo (opcional)",
     "nameLabel": "Nombre del bar",
     "namePlaceholder": "Bar El Rincón",
     "nameRequired": "El nombre es obligatorio",
@@ -174,6 +181,7 @@
     "submit": "Guardar producto",
     "created": "Producto creado",
     "saved": "Producto guardado",
+    "imageUploadError": "No se pudo subir la imagen",
     "searchPlaceholder": "Buscar producto...",
     "emptySearchTitle": "Sin resultados",
     "emptySearchDesc": "Nada coincide con \"{{search}}\".",
@@ -211,15 +219,15 @@
     },
     "palettes": {
       "amber": "Ámbar",
-      "emerald": "Esmeralda",
+      "emerald": "Verde",
       "indigo": "Índigo",
       "teal": "Teal",
       "rose": "Rosa",
-      "slate": "Pizarra",
-      "mono": "Blanco y negro",
-      "ocean": "Océano",
+      "slate": "Gris",
+      "mono": "B/N",
+      "ocean": "Mar",
       "sunset": "Atardecer",
-      "violet": "Violeta"
+      "violet": "Lila"
     }
   },
   "authErrors": {

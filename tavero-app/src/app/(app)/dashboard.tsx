@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useRestaurant } from '@/context/RestaurantContext'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { DESIGN_TOKENS } from '@/lib/designTokens'
 
 const MENU_BASE_URL = process.env.EXPO_PUBLIC_MENU_URL ?? 'https://tavero.app/menu'
 
@@ -35,7 +36,7 @@ function NavCard({ icon, label, description, onPress }: NavCardProps) {
 }
 
 export default function DashboardScreen() {
-  const { signOut, user } = useAuth()
+  const { user } = useAuth()
   const { restaurant, loading, refresh } = useRestaurant()
   const { t } = useTranslation()
 
@@ -44,7 +45,7 @@ export default function DashboardScreen() {
   if (loading) {
     return (
       <View className="flex-1 bg-background items-center justify-center">
-        <ActivityIndicator size="large" color="#0D9488" />
+        <ActivityIndicator size="large" color={DESIGN_TOKENS.colors.accent} />
       </View>
     )
   }
@@ -57,9 +58,6 @@ export default function DashboardScreen() {
             <Text className="text-3xl font-bold text-primary tracking-tight">Tavero</Text>
             <Text className="text-muted mt-1 text-sm" numberOfLines={1}>{user?.email}</Text>
           </View>
-          <Pressable onPress={signOut} hitSlop={8}>
-            <Text className="text-muted text-sm font-medium">{t('common.signOut')}</Text>
-          </Pressable>
         </View>
 
         <Card className="items-center gap-3 py-12">
@@ -89,7 +87,7 @@ export default function DashboardScreen() {
   return (
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-5 pt-16 pb-12">
       {/* Header */}
-      <View className="flex-row items-center mb-7">
+      <View className="flex-row items-center mb-7 px-4 py-3 rounded-2xl bg-accentSoft border border-border">
         <Pressable
           onPress={() => router.push('/(app)/restaurant/setup')}
           className="flex-row items-center flex-1"
@@ -114,16 +112,13 @@ export default function DashboardScreen() {
             </Text>
           </View>
         </Pressable>
-        <Pressable onPress={signOut} hitSlop={8}>
-          <Text className="text-muted text-sm font-medium">{t('common.signOut')}</Text>
-        </Pressable>
       </View>
 
       {/* QR Card */}
       <Card className="items-center gap-3 mb-5 py-6">
         <Text className="text-[11px] font-bold text-muted uppercase tracking-widest">{t('dashboard.yourMenu')}</Text>
         <View className="p-4 bg-accentSoft rounded-2xl">
-          <QRCode value={menuUrl} size={170} backgroundColor="#CCFBF1" color="#134E4A" />
+          <QRCode value={menuUrl} size={170} backgroundColor="#FFFFFF" color="#000000" />
         </View>
         <Button label={t('dashboard.shareMenu')} onPress={handleShare} variant="accent" className="w-full mt-1" />
       </Card>

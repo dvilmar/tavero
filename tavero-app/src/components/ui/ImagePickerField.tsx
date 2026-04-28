@@ -29,7 +29,13 @@ export function ImagePickerField({ label, imageUrl, onPress, uploading, aspectRa
   return (
     <View className={circular ? 'items-center gap-2' : 'gap-1'}>
       {label && <Text className="text-sm font-medium text-primary">{label}</Text>}
-      <Pressable onPress={onPress} disabled={uploading}>
+      <Pressable
+        onPress={onPress}
+        disabled={uploading}
+        accessibilityRole="button"
+        accessibilityLabel={label || t('common.change')}
+        hitSlop={8}
+      >
         {imageUrl ? (
           <View className={`${containerClass} overflow-hidden bg-borderSoft relative`}
             style={circular ? undefined : { aspectRatio }}>
@@ -43,9 +49,9 @@ export function ImagePickerField({ label, imageUrl, onPress, uploading, aspectRa
                 <ActivityIndicator color="#fff" />
               </View>
             )}
-            {!uploading && (
-              <View className="absolute bottom-1 right-1 bg-black/60 rounded-full px-2 py-0.5">
-                <Text className="text-white text-[10px] font-medium">{t('common.change')}</Text>
+            {!uploading && !circular && (
+              <View className="absolute bottom-1 right-1 bg-black/60 rounded-full min-h-5 px-2 items-center justify-center">
+                <Text className="text-white text-[10px] font-medium text-center leading-3">{t('common.change')}</Text>
               </View>
             )}
           </View>

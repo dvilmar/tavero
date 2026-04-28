@@ -3,7 +3,11 @@ import { Alert, Modal, Pressable, Switch, Text, View } from 'react-native'
 import { useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useColorScheme } from 'nativewind'
-import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist'
+import {
+  default as DraggableFlatList,
+  RenderItemParams,
+  ScaleDecorator,
+} from 'react-native-draggable-flatlist'
 import { supabase } from '@/lib/supabase'
 import { useRestaurant } from '@/context/RestaurantContext'
 import { haptic } from '@/lib/haptics'
@@ -17,6 +21,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Toast } from '@/components/ui/Toast'
 import { CategoryRowSkeleton } from '@/components/ui/Skeleton'
 import { useToast } from '@/hooks/useToast'
+import { DESIGN_TOKENS } from '@/lib/designTokens'
 import type { Category } from '@/lib/types'
 
 type FormState = { name: string; description: string }
@@ -140,7 +145,7 @@ export default function CategoriesScreen() {
         <Card className={isActive ? 'shadow-lg' : ''}>
           <View className="flex-row items-start">
             <Pressable
-              onLongPress={() => { haptic.light(); drag() }}
+              onPressIn={() => { haptic.light(); drag() }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               className="mr-3 px-2 py-4 justify-center"
             >
@@ -165,14 +170,24 @@ export default function CategoriesScreen() {
             <Switch
               value={item.is_active}
               onValueChange={() => handleToggle(item)}
-              trackColor={{ true: '#0D9488', false: isDark ? '#4B5563' : '#E7E5E4' }}
+              trackColor={{ true: isDark ? '#FAFAFA' : '#111111', false: isDark ? '#4B5563' : '#E7E5E4' }}
               thumbColor={isDark ? '#F3F4F6' : '#FFFFFF'}
             />
           </View>
 
           <View className="flex-row gap-2 mt-4 pt-4 border-t border-borderSoft">
             <Button label={t('common.edit')} onPress={() => openEdit(item)} variant="secondary" className="flex-1 py-2" />
-            <Button label={t('common.delete')} onPress={() => handleDelete(item)} variant="ghost" className="flex-1 py-2" />
+            <Pressable
+              onPress={() => handleDelete(item)}
+              className={`flex-1 py-2 rounded-xl border items-center justify-center ${
+                isDark ? 'bg-surface border-red-300' : 'bg-red-100 border-red-200'
+              }`}
+              style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
+            >
+              <Text className={`font-semibold text-base ${isDark ? 'text-red-200' : 'text-red-700'}`}>
+                {t('common.delete')}
+              </Text>
+            </Pressable>
           </View>
         </Card>
       </View>
@@ -195,7 +210,7 @@ export default function CategoriesScreen() {
           onDragEnd={handleDragEnd}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          activationDistance={12}
+          activationDistance={0}
           autoscrollThreshold={28}
           autoscrollSpeed={120}
           dragItemOverflow
@@ -208,7 +223,7 @@ export default function CategoriesScreen() {
       <Pressable
         onPress={() => { haptic.light(); openCreate() }}
         className="absolute bottom-8 right-5 w-14 h-14 bg-accent rounded-full items-center justify-center"
-        style={{ shadowColor: '#0D9488', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 }}
+        style={{ shadowColor: DESIGN_TOKENS.colors.accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 }}
       >
         <Text style={{ color: '#fff', fontSize: 32, lineHeight: 32, fontWeight: '300', textAlign: 'center' }}>+</Text>
       </Pressable>

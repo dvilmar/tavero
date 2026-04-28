@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
+import { useColorScheme } from 'nativewind'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
 import { haptic } from '@/lib/haptics'
@@ -47,6 +48,8 @@ const FONTS: { id: FontId; style: object }[] = [
 
 export default function MenuColorsScreen() {
   const { restaurant, refresh } = useRestaurant()
+  const { colorScheme } = useColorScheme()
+  const isDark = colorScheme === 'dark'
   const insets = useSafeAreaInsets()
   const toast = useToast()
   const { t } = useTranslation()
@@ -58,6 +61,7 @@ export default function MenuColorsScreen() {
     (restaurant?.menu_font as FontId) ?? 'inter'
   )
   const [saving, setSaving] = useState(false)
+  const bottomCtaSafeSpace = 88
 
   useEffect(() => {
     if (restaurant) {
@@ -95,14 +99,27 @@ export default function MenuColorsScreen() {
     <View className="flex-1 bg-background">
       {/* Header */}
       <View className="px-6 pt-14 pb-4 bg-surface border-b border-border flex-row items-center">
-        <Pressable onPress={() => router.back()} className="mr-4 w-9 h-9 rounded-full bg-borderSoft items-center justify-center" hitSlop={8}>
+        <Pressable
+          onPress={() => router.back()}
+          className="mr-4 w-9 h-9 rounded-full bg-borderSoft items-center justify-center"
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
+        >
           <Text className="text-primary text-2xl leading-none" style={{ marginTop: -2 }}>‹</Text>
         </Pressable>
         <Text className="text-xl font-bold text-primary flex-1">{t('menuColors.title')}</Text>
         {saving && <ActivityIndicator size="small" color={DESIGN_TOKENS.colors.accent} />}
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 24 + insets.bottom, gap: 20 }}>
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: 24,
+          paddingBottom: bottomCtaSafeSpace + insets.bottom,
+          gap: 20,
+        }}
+      >
 
         {/* Font */}
         <View>
@@ -112,6 +129,10 @@ export default function MenuColorsScreen() {
           <View className="gap-3">
             {FONTS.map((f) => {
               const selected = selectedFont === f.id
+              const selectedFontContainerClass = isDark
+                ? 'bg-surface border-primary'
+                : 'bg-borderSoft border-primary'
+              const selectedFontTextClass = isDark ? 'text-white' : 'text-primary'
               return (
                 <Pressable
                   key={f.id}
@@ -120,25 +141,20 @@ export default function MenuColorsScreen() {
                 >
                   <View
                     className={`flex-row items-center justify-between px-4 py-4 rounded-2xl border-2 ${
-                      selected ? 'bg-accentSoft border-accent' : 'bg-surface border-border'
+                      selected ? selectedFontContainerClass : 'bg-surface border-border'
                     }`}
                   >
                     <View>
-                      <Text className={`text-sm font-semibold ${selected ? 'text-accent' : 'text-muted'}`}>
+                      <Text className={`text-sm font-semibold ${selected ? selectedFontTextClass : 'text-muted'}`}>
                         {t(`menuColors.fonts.${f.id}`)}
                       </Text>
                       <Text
-                        className={`${selected ? 'text-accent' : 'text-primary'}`}
+                        className={`${selected ? selectedFontTextClass : 'text-primary'}`}
                         style={[{ fontSize: 22, marginTop: 2 }, f.style]}
                       >
                         {t('dashboard.yourMenu')}
                       </Text>
                     </View>
-                    {selected && (
-                      <View className="w-6 h-6 rounded-full bg-accent items-center justify-center">
-                        <Text className="text-white text-xs font-bold">✓</Text>
-                      </View>
-                    )}
                   </View>
                 </Pressable>
               )
@@ -208,7 +224,12 @@ export default function MenuColorsScreen() {
         </View>
 
         {hasChanges && (
-          <Button label={t('menuColors.submit')} onPress={handleSave} loading={saving} />
+          <Button
+            label={t('menuColors.submit')}
+            onPress={handleSave}
+            loading={saving}
+            className="mb-1"
+          />
         )}
 
       </ScrollView>

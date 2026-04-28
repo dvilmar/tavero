@@ -1,8 +1,8 @@
 export const DESIGN_TOKENS = {
   colors: {
-    placeholder: '#94A3B8',
-    iconMuted: '#94A3B8',
-    accent: '#059669',
+    placeholder: '#A1A1AA',
+    iconMuted: '#A1A1AA',
+    accent: '#111827',
     cardShadow: '#020617',
   },
   shadow: {

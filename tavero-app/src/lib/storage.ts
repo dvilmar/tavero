@@ -28,7 +28,8 @@ export async function uploadImage(
 ): Promise<string | null> {
   try {
     const ext = uri.split('.').pop()?.split('?')[0] ?? 'jpg'
-    const path = `${target}/${ownerId}/${itemId}.${ext}`
+    const fileName = `${itemId}-${Date.now()}.${ext}`
+    const path = `${target}/${ownerId}/${fileName}`
 
     const arraybuffer = await fetch(uri).then((r) => r.arrayBuffer())
 

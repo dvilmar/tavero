@@ -9,8 +9,6 @@ import { useRestaurant } from '@/context/RestaurantContext'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { ImagePickerField } from '@/components/ui/ImagePickerField'
-import { Toast } from '@/components/ui/Toast'
-import { useToast } from '@/hooks/useToast'
 
 const MENU_BASE = process.env.EXPO_PUBLIC_MENU_URL ?? 'https://tavero.app/menu'
 
@@ -27,7 +25,6 @@ function slugify(text: string) {
 export default function RestaurantSetupScreen() {
   const { user } = useAuth()
   const { restaurant, refresh } = useRestaurant()
-  const toast = useToast()
   const { t } = useTranslation()
 
   const [name, setName]               = useState(restaurant?.name ?? '')
@@ -51,30 +48,11 @@ export default function RestaurantSetupScreen() {
   }
 
   const handlePickLogo = async () => {
-    if (!user) return
     const uri = await pickImage('logos')
     if (!uri) return
 
-    if (isEditing && restaurant) {
-      setUploading(true)
-      try {
-        const url = await uploadImage(uri, 'logos', user.id, restaurant.id)
-        if (!url) return
-        setLogoUrl(url)
-        const { error } = await supabase.from('restaurants').update({ logo_url: url }).eq('id', restaurant.id)
-        if (error) {
-          setServerError(error.message)
-          return
-        }
-        await refresh()
-        toast.show(t('setup.logoUpdated'))
-      } finally {
-        setUploading(false)
-      }
-    } else {
-      setPendingLogoUri(uri)
-      setLogoUrl(uri)
-    }
+    setPendingLogoUri(uri)
+    setLogoUrl(uri)
   }
 
   const handleSave = async () => {
@@ -86,9 +64,29 @@ export default function RestaurantSetupScreen() {
     if (isEditing && restaurant) {
       const { error } = await supabase
         .from('restaurants')
-        .update({ name, description, logo_url: logoUrl })
+        .update({ name, description })
         .eq('id', restaurant.id)
       if (error) { setServerError(error.message); setLoading(false); return }
+
+      if (pendingLogoUri) {
+        setUploading(true)
+        const url = await uploadImage(pendingLogoUri, 'logos', user.id, restaurant.id)
+        setUploading(false)
+        if (!url) {
+          setServerError(t('products.imageUploadError'))
+          setLoading(false)
+          return
+        }
+        const { error: logoError } = await supabase
+          .from('restaurants')
+          .update({ logo_url: url })
+          .eq('id', restaurant.id)
+        if (logoError) {
+          setServerError(logoError.message)
+          setLoading(false)
+          return
+        }
+      }
     } else {
       const finalSlug = slugify(name)
       if (!finalSlug) {
@@ -108,8 +106,15 @@ export default function RestaurantSetupScreen() {
       }
 
       if (pendingLogoUri && data?.id) {
+        setUploading(true)
         const url = await uploadImage(pendingLogoUri, 'logos', user.id, data.id)
-        if (url) await supabase.from('restaurants').update({ logo_url: url }).eq('id', data.id)
+        setUploading(false)
+        if (!url) {
+          setServerError(t('products.imageUploadError'))
+          setLoading(false)
+          return
+        }
+        await supabase.from('restaurants').update({ logo_url: url }).eq('id', data.id)
       }
     }
 
@@ -181,8 +186,8 @@ export default function RestaurantSetupScreen() {
         />
 
         {serverError ? (
-          <View className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-            <Text className="text-red-600 text-sm font-medium">{serverError}</Text>
+          <View className="bg-surface border border-danger rounded-xl px-4 py-3">
+            <Text className="text-danger text-sm font-medium">{serverError}</Text>
           </View>
         ) : null}
 
@@ -193,8 +198,6 @@ export default function RestaurantSetupScreen() {
           className="mt-2"
         />
       </ScrollView>
-
-      <Toast message={toast.message} visible={toast.visible} />
     </KeyboardAvoidingView>
   )
 }
