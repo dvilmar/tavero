@@ -8,8 +8,22 @@ import type { Category, Product } from '@/lib/types'
 
 type Props = { params: { slug: string } }
 
-// ISR: regenerate at most once per minute
-export const revalidate = 60
+// Dynamic rendering → cambios en el menú se reflejan al instante
+export const revalidate = 0
+
+const FONT_URL: Record<string, string> = {
+  inter:       'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
+  playfair:    'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap',
+  lato:        'https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap',
+  montserrat:  'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap',
+}
+
+const FONT_FAMILY: Record<string, string> = {
+  inter:       "'Inter', sans-serif",
+  playfair:    "'Playfair Display', serif",
+  lato:        "'Lato', sans-serif",
+  montserrat:  "'Montserrat', sans-serif",
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { data } = await supabase
@@ -51,7 +65,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function MenuPage({ params }: Props) {
   const { data: restaurant } = await supabase
     .from('restaurants')
-    .select('id, name, slug, description, logo_url')
+    .select('id, name, slug, description, logo_url, menu_font')
     .eq('slug', params.slug)
     .eq('is_active', true)
     .single()
@@ -109,8 +123,16 @@ export default async function MenuPage({ params }: Props) {
 
   const hasAnything = availableProducts.length > 0
 
+  const font = restaurant.menu_font ?? 'inter'
+  const fontUrl = FONT_URL[font] ?? FONT_URL.inter
+  const fontFamily = FONT_FAMILY[font] ?? FONT_FAMILY.inter
+
   return (
-    <div className="min-h-screen bg-bg">
+    <>
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      <link href={fontUrl} rel="stylesheet" />
+    <div className="min-h-screen bg-bg" style={{ fontFamily }}>
       <div className="max-w-lg mx-auto bg-bg min-h-screen flex flex-col shadow-xl shadow-black/5">
         <MenuHeader restaurant={restaurant} />
         <CategoryNav categories={categoriesWithProducts} />
@@ -143,5 +165,6 @@ export default async function MenuPage({ params }: Props) {
         </footer>
       </div>
     </div>
+    </>
   )
 }

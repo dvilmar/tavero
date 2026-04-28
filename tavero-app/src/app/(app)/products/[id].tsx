@@ -3,6 +3,7 @@ import {
   Alert, KeyboardAvoidingView, Platform, Pressable,
   ScrollView, Text, View,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { supabase } from '@/lib/supabase'
 import { pickAndUpload } from '@/lib/storage'
@@ -25,10 +26,13 @@ const DAYS = [
   { label: 'Sáb', value: 6 },
 ]
 
+const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6]
+
 export default function ProductEditScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const isNew = id === 'new'
   const { restaurant } = useRestaurant()
+  const insets = useSafeAreaInsets()
 
   const [categories, setCategories] = useState<Category[]>([])
   const [categoryId, setCategoryId] = useState('')
@@ -68,7 +72,9 @@ export default function ProductEditScreen() {
     setPrice(String(data.price))
     setCategoryId(data.category_id)
     setImageUrl(data.image_url ?? null)
-    setAvailableDays((data.product_availability ?? []).map((a: { day_of_week: number }) => a.day_of_week))
+    const days = (data.product_availability ?? []).map((a: { day_of_week: number }) => a.day_of_week)
+    // Empty array means available every day → show all days highlighted
+    setAvailableDays(days.length === 0 ? ALL_DAYS : days)
     setLoading(false)
   }, [id, isNew])
 
@@ -156,11 +162,12 @@ export default function ProductEditScreen() {
       if (error) { Alert.alert('Error', error.message); setSaving(false); return }
     }
 
-    // Sync availability: delete all then re-insert
+    // Todos los días = disponible siempre (guardamos array vacío)
+    const daysToSave = availableDays.length === 7 ? [] : availableDays
     await supabase.from('product_availability').delete().eq('product_id', productId)
-    if (availableDays.length > 0) {
+    if (daysToSave.length > 0) {
       await supabase.from('product_availability').insert(
-        availableDays.map((day) => ({ product_id: productId, day_of_week: day }))
+        daysToSave.map((day) => ({ product_id: productId, day_of_week: day }))
       )
     }
 
@@ -204,7 +211,7 @@ export default function ProductEditScreen() {
         )}
       </View>
 
-      <ScrollView contentContainerClassName="px-6 py-6 gap-5">
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 24 + insets.bottom, gap: 20 }}>
         {/* Imagen */}
         <ImagePickerField
           label="Foto del plato (opcional)"
@@ -281,7 +288,7 @@ export default function ProductEditScreen() {
         <Card>
           <Text className="text-sm font-semibold text-primary mb-1">Disponibilidad</Text>
           <Text className="text-xs text-muted mb-3">
-            Sin días marcados = disponible toda la semana
+            Todos los días marcados = disponible toda la semana
           </Text>
           <View className="flex-row justify-between">
             {DAYS.map((day) => {
