@@ -132,39 +132,42 @@ export default async function MenuPage({ params }: Props) {
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link href={fontUrl} rel="stylesheet" />
-    <div className="min-h-screen bg-bg" style={{ fontFamily }}>
-      <div className="max-w-lg mx-auto bg-bg min-h-screen flex flex-col shadow-xl shadow-black/5">
-        <MenuHeader restaurant={restaurant} />
-        <CategoryNav categories={categoriesWithProducts} />
+      {/* Override Tailwind Preflight para aplicar la fuente elegida */}
+      <style>{`.menu-root,.menu-root *{font-family:${fontFamily}}`}</style>
 
-        <main className="flex-1 animate-fade-in">
-          {!hasAnything ? (
-            <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
-              <div className="w-20 h-20 rounded-full bg-accentSoft flex items-center justify-center mb-4">
-                <span className="text-4xl">🍽️</span>
+      <div className="menu-root min-h-screen bg-bg">
+        <div className="max-w-lg mx-auto bg-bg min-h-screen flex flex-col shadow-xl shadow-black/5">
+          <MenuHeader restaurant={restaurant} />
+          <CategoryNav categories={categoriesWithProducts} />
+
+          <main className="flex-1 animate-fade-in">
+            {!hasAnything ? (
+              <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
+                <div className="w-20 h-20 rounded-full bg-accentSoft flex items-center justify-center mb-4">
+                  <span className="text-4xl">🍽️</span>
+                </div>
+                <p className="text-primary font-semibold text-base mb-1">No hay platos hoy</p>
+                <p className="text-muted text-sm">Vuelve a consultarlo más tarde.</p>
               </div>
-              <p className="text-primary font-semibold text-base mb-1">No hay platos hoy</p>
-              <p className="text-muted text-sm">Vuelve a consultarlo más tarde.</p>
-            </div>
-          ) : (
-            categoriesWithProducts.map((cat) => (
-              <CategorySection
-                key={cat.id}
-                category={cat}
-                products={productsByCategory[cat.id] ?? []}
-              />
-            ))
-          )}
-        </main>
+            ) : (
+              categoriesWithProducts.map((cat) => (
+                <CategorySection
+                  key={cat.id}
+                  category={cat}
+                  products={productsByCategory[cat.id] ?? []}
+                />
+              ))
+            )}
+          </main>
 
-        <footer className="py-6 text-center border-t border-border">
-          <p className="text-xs text-muted">
-            Menú digital por{' '}
-            <span className="font-semibold text-primary">Tavero</span>
-          </p>
-        </footer>
+          <footer className="py-6 text-center border-t border-border">
+            <p className="text-xs text-muted">
+              Menú digital por{' '}
+              <span className="font-semibold text-primary">Tavero</span>
+            </p>
+          </footer>
+        </div>
       </div>
-    </div>
     </>
   )
 }

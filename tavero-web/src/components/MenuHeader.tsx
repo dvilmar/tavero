@@ -1,5 +1,4 @@
 import Image from 'next/image'
-import { ThemeToggle } from '@/components/ThemeToggle'
 import type { Restaurant } from '@/lib/types'
 
 export function MenuHeader({ restaurant }: { restaurant: Restaurant }) {
@@ -10,7 +9,7 @@ export function MenuHeader({ restaurant }: { restaurant: Restaurant }) {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.25),transparent_60%)]" />
 
       <div className="relative px-6 pt-7 pb-10">
-        <div className="flex items-start justify-between mb-5">
+        <div className="mb-5">
           {restaurant.logo_url ? (
             <Image
               src={restaurant.logo_url}
@@ -26,7 +25,6 @@ export function MenuHeader({ restaurant }: { restaurant: Restaurant }) {
               </span>
             </div>
           )}
-          <ThemeToggle />
         </div>
 
         <h1 className="text-3xl font-bold text-white tracking-tight leading-tight">
