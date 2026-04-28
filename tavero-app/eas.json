@@ -36,12 +36,8 @@
   "submit": {
     "production": {
       "android": {
-        "serviceAccountKeyPath": "./google-service-account.json",
+        "serviceAccountKeyPath": "/tmp/gsa.json",
         "track": "internal"
-      },
-      "ios": {
-        "appleId": "tu@email.com",
-        "ascAppId": "TU_APP_STORE_CONNECT_APP_ID"
       }
     }
   }

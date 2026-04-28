@@ -1,11 +1,9 @@
 name: Release · Mobile Build
 
 on:
-  # Lanzamiento automático con cada push a main o develop
   push:
     branches: [main, develop]
 
-  # También se puede lanzar manualmente con opciones
   workflow_dispatch:
     inputs:
       platform:
@@ -43,7 +41,36 @@ jobs:
 
       - run: npm ci --prefer-offline
 
-      - name: EAS Build
+      # Push a main → build production AAB y espera al resultado para poder subir
+      - name: EAS Build (production · esperando resultado)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          eas build \
+            --platform android \
+            --profile production \
+            --non-interactive
+        env:
+          CI: '1'
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_MENU_URL: ${{ secrets.EXPO_PUBLIC_MENU_URL }}
+
+      # Push a main → subir el AAB a Play Store (track: internal)
+      - name: Play Store · Submit (internal track)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}' > /tmp/gsa.json
+          eas submit \
+            --platform android \
+            --profile production \
+            --latest \
+            --non-interactive
+        env:
+          CI: '1'
+
+      # Push a develop o lanzamiento manual → build rápido sin esperar
+      - name: EAS Build (preview · sin esperar)
+        if: github.ref != 'refs/heads/main' || github.event_name == 'workflow_dispatch'
         run: |
           eas build \
             --platform ${{ inputs.platform || 'android' }} \
