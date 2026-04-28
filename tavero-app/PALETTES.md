@@ -96,3 +96,14 @@ borderSoft:  '#F5F5F4',  // stone-100
 danger:      '#DC2626',
 success:     '#16A34A',
 ```
+
+---
+
+## Extra menu palettes (app IDs)
+
+Estas paletas están disponibles para selector de color del menú (`menu_accent_color`):
+
+- `mono` (blanco y negro)
+- `ocean`
+- `sunset`
+- `violet`

@@ -33,6 +33,10 @@ const PALETTE: Record<string, { accent: string; accentSoft: string }> = {
   teal:     { accent: '13 148 136',  accentSoft: '204 251 241' },
   rose:     { accent: '225 29 72',   accentSoft: '255 228 230' },
   slate:    { accent: '71 85 105',   accentSoft: '241 245 249' },
+  mono:     { accent: '17 24 39',    accentSoft: '243 244 246' },
+  ocean:    { accent: '3 105 161',   accentSoft: '224 242 254' },
+  sunset:   { accent: '234 88 12',   accentSoft: '255 237 213' },
+  violet:   { accent: '124 58 237',  accentSoft: '237 233 254' },
 }
 
 const MADRID_WEEKDAY_TO_DAY: Record<string, number> = {

@@ -1,5 +1,6 @@
 import { Text, TextInput, View } from 'react-native'
 import type { TextInputProps } from 'react-native'
+import { DESIGN_TOKENS } from '@/lib/designTokens'
 
 type Props = TextInputProps & {
   label?: string
@@ -13,7 +14,7 @@ export function Input({ label, error, className, ...props }: Props) {
         <Text className="text-sm font-medium text-primary">{label}</Text>
       )}
       <TextInput
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor={DESIGN_TOKENS.colors.placeholder}
         className={`bg-surface border rounded-xl px-4 py-3 text-base text-primary ${
           error ? 'border-danger' : 'border-border'
         } ${className ?? ''}`}

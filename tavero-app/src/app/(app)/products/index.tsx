@@ -1,11 +1,16 @@
 import { useCallback, useMemo, useState } from 'react'
 import {
-  Alert, Image, Pressable, ScrollView, Switch, Text, TextInput, View,
+  Alert, Image, Pressable, Switch, Text, TextInput, View,
 } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useColorScheme } from 'nativewind'
-import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist'
+import {
+  NestableDraggableFlatList,
+  NestableScrollContainer,
+  RenderItemParams,
+  ScaleDecorator,
+} from 'react-native-draggable-flatlist'
 import { Svg, Circle, Line } from 'react-native-svg'
 import { supabase } from '@/lib/supabase'
 import { useRestaurant } from '@/context/RestaurantContext'
@@ -200,7 +205,7 @@ export default function ProductsScreen() {
           description={isSearching ? t('products.emptySearchDesc', { search }) : t('products.emptyDesc')}
         />
       ) : (
-        <ScrollView
+        <NestableScrollContainer
           contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 96 }}
         >
           {filtered.map((section) => (
@@ -208,16 +213,19 @@ export default function ProductsScreen() {
               <Text className="text-[11px] font-bold text-muted uppercase tracking-widest mt-5 mb-2.5 px-1">
                 {section.title}
               </Text>
-              <DraggableFlatList
+              <NestableDraggableFlatList
                 data={section.data}
                 onDragEnd={({ data }) => handleDragEnd(section.catId, data)}
                 keyExtractor={(item) => item.id}
                 renderItem={renderItem}
-                scrollEnabled={false}
+                activationDistance={12}
+                autoscrollThreshold={28}
+                autoscrollSpeed={120}
+                dragItemOverflow
               />
             </View>
           ))}
-        </ScrollView>
+        </NestableScrollContainer>
       )}
 
       <Pressable

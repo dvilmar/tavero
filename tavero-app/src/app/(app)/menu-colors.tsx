@@ -10,8 +10,19 @@ import { Toast } from '@/components/ui/Toast'
 import { useToast } from '@/hooks/useToast'
 import { useRestaurant } from '@/context/RestaurantContext'
 import { supabase } from '@/lib/supabase'
+import { DESIGN_TOKENS } from '@/lib/designTokens'
 
-type PaletteId = 'amber' | 'emerald' | 'indigo' | 'teal' | 'rose' | 'slate'
+type PaletteId =
+  | 'amber'
+  | 'emerald'
+  | 'indigo'
+  | 'teal'
+  | 'rose'
+  | 'slate'
+  | 'mono'
+  | 'ocean'
+  | 'sunset'
+  | 'violet'
 type FontId = 'inter' | 'montserrat' | 'playfair' | 'lato'
 
 const PALETTES: { id: PaletteId; color: string; bg: string }[] = [
@@ -21,6 +32,10 @@ const PALETTES: { id: PaletteId; color: string; bg: string }[] = [
   { id: 'teal',    color: '#0D9488', bg: '#CCFBF1' },
   { id: 'rose',    color: '#E11D48', bg: '#FFE4E6' },
   { id: 'slate',   color: '#475569', bg: '#F1F5F9' },
+  { id: 'mono',    color: '#111827', bg: '#F3F4F6' },
+  { id: 'ocean',   color: '#0369A1', bg: '#E0F2FE' },
+  { id: 'sunset',  color: '#EA580C', bg: '#FFEDD5' },
+  { id: 'violet',  color: '#7C3AED', bg: '#EDE9FE' },
 ]
 
 const FONTS: { id: FontId; style: object }[] = [
@@ -84,7 +99,7 @@ export default function MenuColorsScreen() {
           <Text className="text-primary text-2xl leading-none" style={{ marginTop: -2 }}>‹</Text>
         </Pressable>
         <Text className="text-xl font-bold text-primary flex-1">{t('menuColors.title')}</Text>
-        {saving && <ActivityIndicator size="small" color="#059669" />}
+        {saving && <ActivityIndicator size="small" color={DESIGN_TOKENS.colors.accent} />}
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 24 + insets.bottom, gap: 20 }}>
@@ -112,7 +127,10 @@ export default function MenuColorsScreen() {
                       <Text className={`text-sm font-semibold ${selected ? 'text-accent' : 'text-muted'}`}>
                         {t(`menuColors.fonts.${f.id}`)}
                       </Text>
-                      <Text style={[{ fontSize: 22, marginTop: 2, color: selected ? '#0D9488' : '#44403C' }, f.style]}>
+                      <Text
+                        className={`${selected ? 'text-accent' : 'text-primary'}`}
+                        style={[{ fontSize: 22, marginTop: 2 }, f.style]}
+                      >
                         {t('dashboard.yourMenu')}
                       </Text>
                     </View>
@@ -156,7 +174,7 @@ export default function MenuColorsScreen() {
                   >
                     <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: p.color }} />
                   </View>
-                  <Text style={{ fontSize: 11, fontWeight: selected ? '600' : '400', color: selected ? p.color : '#64748B' }}>
+                  <Text className={`${selected ? 'text-accent' : 'text-muted'}`} style={{ fontSize: 11, fontWeight: selected ? '600' : '400' }}>
                     {t(`menuColors.palettes.${p.id}`)}
                   </Text>
                 </Pressable>
