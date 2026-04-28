@@ -6,6 +6,11 @@
     "scheme": "tavero",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "backgroundColor": "#0D9488"
+    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.tavero.app"
@@ -29,7 +34,8 @@
         {
           "photosPermission": "Tavero necesita acceso a tu galería para subir fotos de platos."
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
