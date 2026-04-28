@@ -56,18 +56,23 @@ jobs:
           EXPO_PUBLIC_MENU_URL: ${{ secrets.EXPO_PUBLIC_MENU_URL }}
 
       # Push a main → subir el AAB a Play Store (track: internal)
-      # Solo se ejecuta cuando el secret GOOGLE_SERVICE_ACCOUNT_KEY está configurado
+      # Se salta automáticamente si GOOGLE_SERVICE_ACCOUNT_KEY no está configurado
       - name: Play Store · Submit (internal track)
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && secrets.GOOGLE_SERVICE_ACCOUNT_KEY != ''
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          CI: '1'
+          GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
         run: |
-          echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}' > /tmp/gsa.json
+          if [ -z "$GOOGLE_SERVICE_ACCOUNT_KEY" ]; then
+            echo "⚠️  GOOGLE_SERVICE_ACCOUNT_KEY no configurado, saltando submit"
+            exit 0
+          fi
+          echo "$GOOGLE_SERVICE_ACCOUNT_KEY" > /tmp/gsa.json
           eas submit \
             --platform android \
             --profile production \
             --latest \
             --non-interactive
-        env:
-          CI: '1'
 
       # Push a develop o lanzamiento manual → build rápido sin esperar
       - name: EAS Build (preview · sin esperar)
