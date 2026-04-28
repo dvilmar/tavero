@@ -10,13 +10,14 @@ import { useToast } from '@/hooks/useToast'
 import { useRestaurant } from '@/context/RestaurantContext'
 import { supabase } from '@/lib/supabase'
 
+// Colores del design system Tavero
 const PALETTES = [
-  { id: 'teal',   label: 'Turquesa',  color: '#0D9488', bg: '#CCFBF1' },
-  { id: 'blue',   label: 'Azul',      color: '#2563EB', bg: '#DBEAFE' },
-  { id: 'violet', label: 'Violeta',   color: '#7C3AED', bg: '#EDE9FE' },
-  { id: 'rose',   label: 'Rosa',      color: '#E11D48', bg: '#FFE4E6' },
-  { id: 'amber',  label: 'Ámbar',     color: '#D97706', bg: '#FEF3C7' },
-  { id: 'slate',  label: 'Pizarra',   color: '#475569', bg: '#F1F5F9' },
+  { id: 'amber',   label: 'Ámbar',      color: '#D97706', bg: '#FEF3C7' },
+  { id: 'emerald', label: 'Esmeralda',  color: '#059669', bg: '#D1FAE5' },
+  { id: 'indigo',  label: 'Índigo',     color: '#4F46E5', bg: '#EEF2FF' },
+  { id: 'teal',    label: 'Teal',       color: '#0D9488', bg: '#CCFBF1' },
+  { id: 'rose',    label: 'Rosa',       color: '#E11D48', bg: '#FFE4E6' },
+  { id: 'slate',   label: 'Pizarra',    color: '#475569', bg: '#F1F5F9' },
 ]
 
 const FONTS = [
@@ -29,9 +30,10 @@ const FONTS = [
 export default function MenuColorsScreen() {
   const { colorScheme, setColorScheme } = useColorScheme()
   const isDark = colorScheme === 'dark'
-  const [selectedPalette, setSelectedPalette] = useState('teal')
+  const [selectedPalette, setSelectedPalette] = useState('amber')
   const [selectedFont, setSelectedFont] = useState('inter')
   const [savingFont, setSavingFont] = useState(false)
+  const [savingColor, setSavingColor] = useState(false)
   const { restaurant } = useRestaurant()
   const insets = useSafeAreaInsets()
   const toast = useToast()
@@ -41,9 +43,14 @@ export default function MenuColorsScreen() {
     setColorScheme(value ? 'dark' : 'light')
   }
 
-  const handlePalette = (id: string) => {
+  const handlePalette = async (id: string) => {
     haptic.light()
     setSelectedPalette(id)
+    if (!restaurant) return
+    setSavingColor(true)
+    await supabase.from('restaurants').update({ menu_accent_color: id }).eq('id', restaurant.id)
+    setSavingColor(false)
+    toast.show('Color actualizado')
   }
 
   const handleFont = async (id: string) => {
@@ -64,7 +71,7 @@ export default function MenuColorsScreen() {
           <Text className="text-accent font-semibold text-base">←</Text>
         </Pressable>
         <Text className="text-xl font-bold text-primary flex-1">Apariencia del menú</Text>
-        {savingFont && <ActivityIndicator size="small" color="#0D9488" />}
+        {(savingFont || savingColor) && <ActivityIndicator size="small" color="#059669" />}
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 24 + insets.bottom, gap: 20 }}>
@@ -157,18 +164,12 @@ export default function MenuColorsScreen() {
                   >
                     <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: p.color }} />
                   </View>
-                  <Text className={`text-xs font-medium ${selected ? 'text-primary' : 'text-muted'}`}>
+                  <Text style={{ fontSize: 11, fontWeight: selected ? '600' : '400', color: selected ? p.color : '#64748B' }}>
                     {p.label}
                   </Text>
                 </Pressable>
               )
             })}
-          </View>
-          <View className="bg-accentSoft rounded-2xl p-4 mt-4">
-            <Text className="text-accent font-semibold text-sm">Próximamente</Text>
-            <Text className="text-muted text-xs mt-1 leading-relaxed">
-              La sincronización de colores con el menú público estará disponible en la próxima versión.
-            </Text>
           </View>
         </View>
 

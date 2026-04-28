@@ -2,32 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Design system: Slate + Emerald (light) */
 :root {
-  --background: 240 253 250;
-  --surface: 255 255 255;
-  --primary: 19 78 74;
-  --primaryLight: 15 118 110;
-  --accent: 13 148 136;
-  --accentSoft: 204 251 241;
-  --muted: 100 116 139;
-  --mutedLight: 148 163 184;
-  --border: 153 246 228;
-  --borderSoft: 204 251 241;
-  --danger: 220 38 38;
-  --success: 22 163 74;
+  --background:   248 250 252;   /* slate-50   #F8FAFC */
+  --surface:      255 255 255;
+  --primary:       15  23  42;   /* slate-900  #0F172A */
+  --primaryLight:  30  41  59;   /* slate-800  #1E293B */
+  --accent:         5 150 105;   /* emerald-600 #059669 */
+  --accentSoft:   209 250 229;   /* emerald-100 #D1FAE5 */
+  --muted:        100 116 139;   /* slate-500  #64748B */
+  --mutedLight:   148 163 184;   /* slate-400  #94A3B8 */
+  --border:       226 232 240;   /* slate-200  #E2E8F0 */
+  --borderSoft:   241 245 249;   /* slate-100  #F1F5F9 */
+  --danger:       220  38  38;
+  --success:       22 163  74;
 }
 
+/* Design system: Slate + Emerald (dark) */
 .dark {
-  --background: 15 23 42;
-  --surface: 30 41 59;
-  --primary: 241 245 249;
-  --primaryLight: 203 213 225;
-  --accent: 45 212 191;
-  --accentSoft: 19 78 74;
-  --muted: 148 163 184;
-  --mutedLight: 100 116 139;
-  --border: 51 65 85;
-  --borderSoft: 30 41 59;
-  --danger: 248 113 113;
-  --success: 74 222 128;
+  --background:    15  23  42;   /* slate-900 */
+  --surface:       30  41  59;   /* slate-800 */
+  --primary:      248 250 252;   /* slate-50  */
+  --primaryLight: 203 213 225;   /* slate-300 */
+  --accent:        16 185 129;   /* emerald-500 (más vivo en oscuro) */
+  --accentSoft:     2  44  34;   /* emerald-950 */
+  --muted:        148 163 184;   /* slate-400 */
+  --mutedLight:   100 116 139;   /* slate-500 */
+  --border:        51  65  85;   /* slate-700 */
+  --borderSoft:    30  41  59;   /* slate-800 */
+  --danger:       248 113 113;
+  --success:       74 222 128;
 }

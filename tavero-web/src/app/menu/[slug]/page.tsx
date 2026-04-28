@@ -25,6 +25,16 @@ const FONT_FAMILY: Record<string, string> = {
   montserrat:  "'Montserrat', sans-serif",
 }
 
+// RGB values matching Tailwind's CSS-variable pattern (no rgb())
+const PALETTE: Record<string, { accent: string; accentSoft: string }> = {
+  amber:    { accent: '217 119 6',   accentSoft: '254 243 199' },
+  emerald:  { accent: '5 150 105',   accentSoft: '209 250 229' },
+  indigo:   { accent: '79 70 229',   accentSoft: '238 242 255' },
+  teal:     { accent: '13 148 136',  accentSoft: '204 251 241' },
+  rose:     { accent: '225 29 72',   accentSoft: '255 228 230' },
+  slate:    { accent: '71 85 105',   accentSoft: '241 245 249' },
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { data } = await supabase
     .from('restaurants')
@@ -65,7 +75,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function MenuPage({ params }: Props) {
   const { data: restaurant } = await supabase
     .from('restaurants')
-    .select('id, name, slug, description, logo_url, menu_font')
+    .select('id, name, slug, description, logo_url, menu_font, menu_accent_color')
     .eq('slug', params.slug)
     .eq('is_active', true)
     .single()
@@ -126,14 +136,20 @@ export default async function MenuPage({ params }: Props) {
   const font = restaurant.menu_font ?? 'inter'
   const fontUrl = FONT_URL[font] ?? FONT_URL.inter
   const fontFamily = FONT_FAMILY[font] ?? FONT_FAMILY.inter
+  const palette = PALETTE[restaurant.menu_accent_color ?? 'amber'] ?? PALETTE.amber
 
   return (
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link href={fontUrl} rel="stylesheet" />
-      {/* Override Tailwind Preflight para aplicar la fuente elegida */}
-      <style>{`.menu-root,.menu-root *{font-family:${fontFamily}}`}</style>
+      <style>{`
+        .menu-root {
+          --color-accent: ${palette.accent};
+          --color-accent-soft: ${palette.accentSoft};
+        }
+        .menu-root, .menu-root * { font-family: ${fontFamily}; }
+      `}</style>
 
       <div className="menu-root min-h-screen bg-bg">
         <div className="max-w-lg mx-auto bg-bg min-h-screen flex flex-col shadow-xl shadow-black/5">
