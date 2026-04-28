@@ -18,8 +18,9 @@ on:
         default: preview
 
 jobs:
-  build:
-    name: EAS Build · ${{ inputs.platform || 'android' }} · ${{ inputs.profile || 'preview' }}
+  # ── APK (preview) — disponible para descarga directa ─────────────────────
+  build-apk:
+    name: EAS Build · android · preview (APK)
     runs-on: ubuntu-latest
     environment: production
     defaults:
@@ -41,9 +42,42 @@ jobs:
 
       - run: npm ci --prefer-offline
 
-      # Push a main → build production AAB y espera al resultado para poder subir
-      - name: EAS Build (production · esperando resultado)
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      - name: EAS Build APK
+        run: |
+          eas build \
+            --platform android \
+            --profile preview \
+            --non-interactive \
+            --no-wait
+        env:
+          CI: '1'
+
+  # ── AAB (production) → Play Store ────────────────────────────────────────
+  build-and-submit:
+    name: EAS Build · android · production (AAB) + Play Store
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    defaults:
+      run:
+        working-directory: tavero-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: tavero-app/package-lock.json
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - run: npm ci --prefer-offline
+
+      - name: EAS Build AAB (esperando resultado)
         run: |
           eas build \
             --platform android \
@@ -51,14 +85,8 @@ jobs:
             --non-interactive
         env:
           CI: '1'
-          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          EXPO_PUBLIC_MENU_URL: ${{ secrets.EXPO_PUBLIC_MENU_URL }}
 
-      # Push a main → subir el AAB a Play Store (track: internal)
-      # Se salta automáticamente si GOOGLE_SERVICE_ACCOUNT_KEY no está configurado
       - name: Play Store · Submit (internal track)
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         env:
           CI: '1'
           GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
@@ -74,17 +102,37 @@ jobs:
             --latest \
             --non-interactive
 
-      # Push a develop o lanzamiento manual → build rápido sin esperar
-      - name: EAS Build (preview · sin esperar)
-        if: github.ref != 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+  # ── Build manual (workflow_dispatch) ─────────────────────────────────────
+  build-manual:
+    name: EAS Build · ${{ inputs.platform }} · ${{ inputs.profile }} (manual)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    environment: production
+    defaults:
+      run:
+        working-directory: tavero-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: tavero-app/package-lock.json
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - run: npm ci --prefer-offline
+
+      - name: EAS Build
         run: |
           eas build \
-            --platform ${{ inputs.platform || 'android' }} \
-            --profile ${{ inputs.profile || 'preview' }} \
+            --platform ${{ inputs.platform }} \
+            --profile ${{ inputs.profile }} \
             --non-interactive \
             --no-wait
         env:
           CI: '1'
-          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          EXPO_PUBLIC_MENU_URL: ${{ secrets.EXPO_PUBLIC_MENU_URL }}
