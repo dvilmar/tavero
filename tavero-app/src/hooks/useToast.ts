@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export function useToast() {
   const [visible, setVisible] = useState(false)
@@ -11,6 +11,12 @@ export function useToast() {
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => setVisible(false), 2500)
   }
+
+  useEffect(() => {
+    return () => {
+      if (timer.current) clearTimeout(timer.current)
+    }
+  }, [])
 
   return { show, visible, message }
 }

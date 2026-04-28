@@ -1,7 +1,7 @@
 import { ActivityIndicator, Pressable, Text } from 'react-native'
 import { haptic } from '@/lib/haptics'
 
-type Variant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'accent'
+type Variant = 'primary' | 'secondary' | 'ghost' | 'accent'
 
 type Props = {
   label: string
@@ -18,7 +18,6 @@ const variants: Record<Variant, string> = {
   primary:   'bg-primary',
   accent:    'bg-accent',
   secondary: 'bg-surface border border-border',
-  danger:    'bg-danger',
   ghost:     'bg-transparent',
 }
 
@@ -26,7 +25,6 @@ const textVariants: Record<Variant, string> = {
   primary:   'text-white font-semibold text-base tracking-tight',
   accent:    'text-white font-semibold text-base tracking-tight',
   secondary: 'text-primary font-semibold text-base tracking-tight',
-  danger:    'text-white font-semibold text-base tracking-tight',
   ghost:     'text-accent font-semibold text-base',
 }
 
@@ -35,8 +33,7 @@ export function Button({ label, onPress, variant = 'primary', loading, disabled,
   const spinnerColor = variant === 'secondary' || variant === 'ghost' ? '#0D9488' : '#fff'
 
   const handlePress = () => {
-    if (variant === 'danger') haptic.warning()
-    else                       haptic.light()
+    haptic.light()
     onPress()
   }
 

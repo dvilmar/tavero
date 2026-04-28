@@ -1,41 +1,31 @@
 import { useState } from 'react'
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
+import { checkEmailExists, RESET_REDIRECT_URL } from '@/lib/auth'
 import { translateAuthError } from '@/lib/authErrors'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-
-const RESET_REDIRECT  = process.env.EXPO_PUBLIC_MENU_URL
-  ? `${process.env.EXPO_PUBLIC_MENU_URL.replace('/menu', '')}/auth/callback`
-  : 'https://tavero-web.vercel.app/auth/callback'
-
-const CHECK_EMAIL_URL = process.env.EXPO_PUBLIC_MENU_URL
-  ? `${process.env.EXPO_PUBLIC_MENU_URL.replace('/menu', '')}/api/check-email`
-  : 'https://tavero-web.vercel.app/api/check-email'
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail]     = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent]       = useState(false)
   const [error, setError]     = useState('')
+  const { t } = useTranslation()
 
   const handleSend = async () => {
     setError('')
-    if (!email.trim())        { setError('Introduce tu email'); return }
-    if (!email.includes('@')) { setError('Introduce un email válido'); return }
+    if (!email.trim())        { setError(t('forgotPassword.errors.emailRequired')); return }
+    if (!email.includes('@')) { setError(t('forgotPassword.errors.invalidEmail')); return }
 
     setLoading(true)
 
     try {
-      const res = await fetch(CHECK_EMAIL_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
-      })
-      const { exists } = await res.json()
+      const exists = await checkEmailExists(email.trim())
       if (!exists) {
-        setError('No existe ninguna cuenta con ese email.')
+        setError(t('forgotPassword.errors.noAccount'))
         setLoading(false)
         return
       }
@@ -44,7 +34,7 @@ export default function ForgotPasswordScreen() {
     }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: RESET_REDIRECT,
+      redirectTo: RESET_REDIRECT_URL,
     })
     setLoading(false)
 
@@ -61,16 +51,16 @@ export default function ForgotPasswordScreen() {
           </View>
         </View>
         <Text className="text-3xl font-bold text-primary mb-2 text-center tracking-tight">
-          Revisa tu email
+          {t('forgotPassword.successTitle')}
         </Text>
         <Text className="text-muted text-base mb-2 text-center leading-relaxed px-2">
-          Hemos enviado el enlace de recuperación a{'\n'}
+          {t('forgotPassword.successBody')}{'\n'}
           <Text className="text-primary font-semibold">{email}</Text>
         </Text>
         <Text className="text-muted text-sm mb-8 text-center">
-          Puede tardar unos minutos. Revisa también el spam.
+          {t('forgotPassword.successNote')}
         </Text>
-        <Button label="Volver al inicio de sesión" onPress={() => router.replace('/(auth)/login')} />
+        <Button label={t('forgotPassword.backToLogin')} onPress={() => router.replace('/(auth)/login')} />
       </View>
     )
   }
@@ -83,25 +73,27 @@ export default function ForgotPasswordScreen() {
       <ScrollView contentContainerClassName="flex-1 justify-center px-6 py-12">
         <View className="mb-10">
           <Pressable onPress={() => router.back()} className="mb-6" hitSlop={8}>
-            <Text className="text-muted font-medium">← Volver</Text>
+            <Text className="text-muted font-medium">{t('common.back')}</Text>
           </Pressable>
           <Text className="text-3xl font-bold text-primary tracking-tight">
-            Recuperar contraseña
+            {t('forgotPassword.title')}
           </Text>
           <Text className="text-muted mt-1 text-[15px]">
-            Te mandamos un enlace para restablecerla
+            {t('forgotPassword.tagline')}
           </Text>
         </View>
 
         <View className="gap-4">
           <Input
-            label="Email"
+            label={t('forgotPassword.email')}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
-            placeholder="tu@email.com"
+            placeholder={t('forgotPassword.emailPlaceholder')}
+            returnKeyType="done"
+            onSubmitEditing={handleSend}
           />
 
           {error ? (
@@ -110,7 +102,7 @@ export default function ForgotPasswordScreen() {
             </View>
           ) : null}
 
-          <Button label="Enviar enlace" onPress={handleSend} loading={loading} className="mt-2" />
+          <Button label={t('forgotPassword.submit')} onPress={handleSend} loading={loading} className="mt-2" />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

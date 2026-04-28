@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { translateAuthError } from '@/lib/authErrors'
 import { Button } from '@/components/ui/Button'
@@ -14,13 +15,14 @@ export default function RegisterScreen() {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
   const [done, setDone]         = useState(false)
+  const { t } = useTranslation()
 
   const handleRegister = async () => {
     setError('')
-    if (!email.trim())          { setError('Introduce tu email'); return }
-    if (!password)              { setError('Introduce una contraseña'); return }
-    if (password.length < 6)    { setError('La contraseña debe tener al menos 6 caracteres'); return }
-    if (password !== confirm)   { setError('Las contraseñas no coinciden'); return }
+    if (!email.trim())          { setError(t('register.errors.emailRequired')); return }
+    if (!password)              { setError(t('register.errors.passwordRequired')); return }
+    if (password.length < 6)    { setError(t('register.errors.passwordTooShort')); return }
+    if (password !== confirm)   { setError(t('register.errors.passwordsMismatch')); return }
 
     setLoading(true)
     const { data, error } = await supabase.auth.signUp({ email: email.trim(), password })
@@ -29,7 +31,7 @@ export default function RegisterScreen() {
     if (error) {
       if (error.message.toLowerCase().includes('already registered') ||
           error.message.toLowerCase().includes('user already exists')) {
-        setError('Este email ya tiene una cuenta. Inicia sesión.')
+        setError(t('register.errors.alreadyRegistered'))
       } else {
         setError(translateAuthError(error.message))
       }
@@ -37,7 +39,7 @@ export default function RegisterScreen() {
     }
 
     if (data.user?.identities?.length === 0) {
-      setError('Este email ya tiene una cuenta. Inicia sesión.')
+      setError(t('register.errors.alreadyRegistered'))
       return
     }
 
@@ -53,13 +55,13 @@ export default function RegisterScreen() {
           </View>
         </View>
         <Text className="text-3xl font-bold text-primary mb-2 text-center tracking-tight">
-          Revisa tu email
+          {t('register.successTitle')}
         </Text>
         <Text className="text-muted text-base mb-8 text-center leading-relaxed px-2">
-          Hemos enviado un enlace de confirmación a{'\n'}
+          {t('register.successBody')}{'\n'}
           <Text className="text-primary font-semibold">{email}</Text>
         </Text>
-        <Button label="Ir al inicio de sesión" onPress={() => router.replace('/(auth)/login')} />
+        <Button label={t('register.goToLogin')} onPress={() => router.replace('/(auth)/login')} />
       </View>
     )
   }
@@ -72,32 +74,36 @@ export default function RegisterScreen() {
       <ScrollView contentContainerClassName="flex-1 justify-center px-6 py-12">
         <View className="mb-10">
           <Pressable onPress={() => router.back()} className="mb-6" hitSlop={8}>
-            <Text className="text-muted font-medium">← Volver</Text>
+            <Text className="text-muted font-medium">{t('common.back')}</Text>
           </Pressable>
-          <Text className="text-3xl font-bold text-primary tracking-tight">Crear cuenta</Text>
-          <Text className="text-muted mt-1 text-[15px]">Empieza a digitalizar tu menú</Text>
+          <Text className="text-3xl font-bold text-primary tracking-tight">{t('register.title')}</Text>
+          <Text className="text-muted mt-1 text-[15px]">{t('register.tagline')}</Text>
         </View>
 
         <View className="gap-4">
           <Input
-            label="Email"
+            label={t('register.email')}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
-            placeholder="tu@email.com"
+            placeholder={t('register.emailPlaceholder')}
+            returnKeyType="next"
           />
           <PasswordInput
-            label="Contraseña"
+            label={t('register.password')}
             value={password}
             onChangeText={setPassword}
-            placeholder="Mínimo 6 caracteres"
+            placeholder={t('register.passwordPlaceholder')}
+            returnKeyType="next"
           />
           <PasswordInput
-            label="Confirmar contraseña"
+            label={t('register.confirmPassword')}
             value={confirm}
             onChangeText={setConfirm}
-            placeholder="Repite la contraseña"
+            placeholder={t('register.confirmPlaceholder')}
+            onSubmitEditing={handleRegister}
+            returnKeyType="done"
           />
 
           {error ? (
@@ -106,14 +112,14 @@ export default function RegisterScreen() {
             </View>
           ) : null}
 
-          <Button label="Crear cuenta" onPress={handleRegister} loading={loading} className="mt-2" />
+          <Button label={t('register.submit')} onPress={handleRegister} loading={loading} className="mt-2" />
         </View>
 
         <View className="mt-10 pt-6 border-t border-border items-center">
           <Text className="text-muted text-sm">
-            ¿Ya tienes cuenta?{' '}
+            {t('register.hasAccount')}{' '}
             <Text className="text-accent font-semibold" onPress={() => router.back()}>
-              Inicia sesión
+              {t('register.signIn')}
             </Text>
           </Text>
         </View>

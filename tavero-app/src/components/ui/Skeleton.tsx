@@ -30,8 +30,8 @@ export function Skeleton({ width = '100%', height = 16, rounded = 'md', classNam
     <Animated.View
       className={`bg-borderSoft ${className}`}
       style={{
-        width: width as any,
-        height: height as any,
+        width,
+        height,
         borderRadius: radius[rounded],
         opacity,
       }}
@@ -41,7 +41,7 @@ export function Skeleton({ width = '100%', height = 16, rounded = 'md', classNam
 
 export function ProductRowSkeleton() {
   return (
-    <View className="bg-white rounded-2xl p-3 mb-2.5 border border-borderSoft flex-row items-center">
+    <View className="bg-surface rounded-2xl p-3 mb-2.5 border border-borderSoft flex-row items-center">
       <Skeleton width={52} height={52} rounded="lg" />
       <View className="flex-1 ml-3 gap-1.5">
         <Skeleton width="60%" height={14} />
@@ -55,7 +55,7 @@ export function ProductRowSkeleton() {
 
 export function CategoryRowSkeleton() {
   return (
-    <View className="bg-white rounded-2xl p-4 mb-3 border border-borderSoft">
+    <View className="bg-surface rounded-2xl p-4 mb-3 border border-borderSoft">
       <View className="flex-row items-center justify-between mb-2">
         <Skeleton width="40%" height={16} />
         <Skeleton width={44} height={24} rounded="full" />

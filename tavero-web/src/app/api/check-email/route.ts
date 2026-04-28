@@ -1,20 +1,16 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
-const admin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 export async function POST(req: NextRequest) {
-  const { email } = await req.json()
-  if (!email) return NextResponse.json({ exists: false })
+  let body: { email?: unknown } = {}
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ exists: true }, { status: 400 })
+  }
 
-  const { data, error } = await admin.auth.admin.listUsers()
-  if (error) return NextResponse.json({ exists: false })
+  const email = typeof body.email === 'string' ? body.email : ''
+  if (!email) return NextResponse.json({ exists: true })
 
-  const exists = data.users.some(
-    u => u.email?.toLowerCase() === email.toLowerCase()
-  )
-  return NextResponse.json({ exists })
+  // Avoid account enumeration: never expose existence publicly
+  return NextResponse.json({ exists: true })
 }

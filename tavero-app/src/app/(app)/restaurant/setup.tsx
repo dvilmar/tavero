@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { pickImage, uploadImage } from '@/lib/storage'
 import { useAuth } from '@/context/AuthContext'
@@ -27,6 +28,7 @@ export default function RestaurantSetupScreen() {
   const { user } = useAuth()
   const { restaurant, refresh } = useRestaurant()
   const toast = useToast()
+  const { t } = useTranslation()
 
   const [name, setName]               = useState(restaurant?.name ?? '')
   const [description, setDescription] = useState(restaurant?.description ?? '')
@@ -38,29 +40,37 @@ export default function RestaurantSetupScreen() {
   const [serverError, setServerError] = useState('')
 
   const isEditing = !!restaurant
-  const slug = isEditing ? restaurant!.slug : slugify(name)
+  const slug = isEditing ? (restaurant?.slug ?? '') : slugify(name)
   const previewUrl = `${MENU_BASE}/${slug || '...'}`
 
   const validate = () => {
     const e: typeof errors = {}
-    if (!name.trim()) e.name = 'El nombre es obligatorio'
+    if (!name.trim()) e.name = t('setup.nameRequired')
     setErrors(e)
     return Object.keys(e).length === 0
   }
 
   const handlePickLogo = async () => {
+    if (!user) return
     const uri = await pickImage('logos')
     if (!uri) return
 
-    if (isEditing) {
+    if (isEditing && restaurant) {
       setUploading(true)
-      const url = await uploadImage(uri, 'logos', user!.id, restaurant!.id)
-      setUploading(false)
-      if (!url) return
-      setLogoUrl(url)
-      await supabase.from('restaurants').update({ logo_url: url }).eq('id', restaurant!.id)
-      await refresh()
-      toast.show('Logo actualizado')
+      try {
+        const url = await uploadImage(uri, 'logos', user.id, restaurant.id)
+        if (!url) return
+        setLogoUrl(url)
+        const { error } = await supabase.from('restaurants').update({ logo_url: url }).eq('id', restaurant.id)
+        if (error) {
+          setServerError(error.message)
+          return
+        }
+        await refresh()
+        toast.show(t('setup.logoUpdated'))
+      } finally {
+        setUploading(false)
+      }
     } else {
       setPendingLogoUri(uri)
       setLogoUrl(uri)
@@ -68,11 +78,12 @@ export default function RestaurantSetupScreen() {
   }
 
   const handleSave = async () => {
+    if (!user) return
     if (!validate()) return
     setServerError('')
     setLoading(true)
 
-    if (isEditing) {
+    if (isEditing && restaurant) {
       const { error } = await supabase
         .from('restaurants')
         .update({ name, description, logo_url: logoUrl })
@@ -80,21 +91,24 @@ export default function RestaurantSetupScreen() {
       if (error) { setServerError(error.message); setLoading(false); return }
     } else {
       const finalSlug = slugify(name)
+      if (!finalSlug) {
+        setServerError(t('setup.slugInvalid'))
+        setLoading(false)
+        return
+      }
       const { data, error } = await supabase
         .from('restaurants')
-        .insert({ user_id: user!.id, name, slug: finalSlug, description })
+        .insert({ user_id: user.id, name, slug: finalSlug, description })
         .select('id')
         .single()
       if (error) {
-        setServerError(error.code === '23505'
-          ? 'Ya existe un bar con un nombre muy parecido. Cámbialo ligeramente.'
-          : error.message)
+        setServerError(error.code === '23505' ? t('setup.slugConflict') : error.message)
         setLoading(false)
         return
       }
 
       if (pendingLogoUri && data?.id) {
-        const url = await uploadImage(pendingLogoUri, 'logos', user!.id, data.id)
+        const url = await uploadImage(pendingLogoUri, 'logos', user.id, data.id)
         if (url) await supabase.from('restaurants').update({ logo_url: url }).eq('id', data.id)
       }
     }
@@ -110,7 +124,7 @@ export default function RestaurantSetupScreen() {
       className="flex-1 bg-background"
     >
       {/* Header */}
-      <View className="px-6 pt-14 pb-4 bg-white border-b border-border flex-row items-center">
+      <View className="px-6 pt-14 pb-4 bg-surface border-b border-border flex-row items-center">
         {isEditing && (
           <Pressable onPress={() => router.back()} className="mr-4 w-9 h-9 rounded-full bg-borderSoft items-center justify-center" hitSlop={8}>
             <Text className="text-primary text-2xl leading-none" style={{ marginTop: -2 }}>‹</Text>
@@ -118,10 +132,10 @@ export default function RestaurantSetupScreen() {
         )}
         <View className="flex-1">
           <Text className="text-xl font-bold text-primary">
-            {isEditing ? 'Información del bar' : 'Crea tu bar'}
+            {isEditing ? t('setup.titleEdit') : t('setup.titleCreate')}
           </Text>
           <Text className="text-xs text-muted mt-0.5">
-            {isEditing ? 'Actualiza los datos de tu bar' : 'Configura tu bar para empezar'}
+            {isEditing ? t('setup.subtitleEdit') : t('setup.subtitleCreate')}
           </Text>
         </View>
       </View>
@@ -130,7 +144,7 @@ export default function RestaurantSetupScreen() {
         {/* Logo */}
         <View className="items-center py-2">
           <ImagePickerField
-            label="Logo del bar (opcional)"
+            label={t('setup.logoLabel')}
             imageUrl={logoUrl}
             onPress={handlePickLogo}
             uploading={uploading}
@@ -140,28 +154,28 @@ export default function RestaurantSetupScreen() {
 
         {/* Name */}
         <Input
-          label="Nombre del bar"
+          label={t('setup.nameLabel')}
           value={name}
           onChangeText={setName}
-          placeholder="Bar El Rincón"
+          placeholder={t('setup.namePlaceholder')}
           error={errors.name}
         />
 
         {/* URL preview */}
         <View className="gap-1.5">
-          <Text className="text-sm font-medium text-primary">Tu URL pública</Text>
+          <Text className="text-sm font-medium text-primary">{t('setup.urlLabel')}</Text>
           <View className="bg-borderSoft border border-border rounded-xl px-4 py-3">
             <Text className="text-sm text-muted" numberOfLines={1}>{previewUrl}</Text>
           </View>
-          <Text className="text-xs text-muted">Generada automáticamente a partir del nombre.</Text>
+          <Text className="text-xs text-muted">{t('setup.urlNote')}</Text>
         </View>
 
         {/* Description */}
         <Input
-          label="Descripción (opcional)"
+          label={t('setup.descLabel')}
           value={description}
           onChangeText={setDescription}
-          placeholder="El mejor bar del barrio, con tapas caseras y vinos de la tierra"
+          placeholder={t('setup.descPlaceholder')}
           multiline
           numberOfLines={3}
         />
@@ -173,7 +187,7 @@ export default function RestaurantSetupScreen() {
         ) : null}
 
         <Button
-          label={isEditing ? 'Guardar cambios' : 'Crear bar'}
+          label={isEditing ? t('setup.submitEdit') : t('setup.submitCreate')}
           onPress={handleSave}
           loading={loading}
           className="mt-2"

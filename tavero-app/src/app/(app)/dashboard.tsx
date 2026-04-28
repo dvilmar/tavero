@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { ActivityIndicator, Image, Pressable, ScrollView, Share, Text, View } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
+import { useTranslation } from 'react-i18next'
 import QRCode from 'react-native-qrcode-svg'
 import { useAuth } from '@/context/AuthContext'
 import { useRestaurant } from '@/context/RestaurantContext'
@@ -36,8 +37,9 @@ function NavCard({ icon, label, description, onPress }: NavCardProps) {
 export default function DashboardScreen() {
   const { signOut, user } = useAuth()
   const { restaurant, loading, refresh } = useRestaurant()
+  const { t } = useTranslation()
 
-  useFocusEffect(useCallback(() => { refresh() }, []))
+  useFocusEffect(useCallback(() => { refresh() }, [refresh]))
 
   if (loading) {
     return (
@@ -56,7 +58,7 @@ export default function DashboardScreen() {
             <Text className="text-muted mt-1 text-sm" numberOfLines={1}>{user?.email}</Text>
           </View>
           <Pressable onPress={signOut} hitSlop={8}>
-            <Text className="text-muted text-sm font-medium">Salir</Text>
+            <Text className="text-muted text-sm font-medium">{t('common.signOut')}</Text>
           </Pressable>
         </View>
 
@@ -64,12 +66,12 @@ export default function DashboardScreen() {
           <View className="w-20 h-20 rounded-full bg-accentSoft items-center justify-center mb-2">
             <Text className="text-4xl">🍽️</Text>
           </View>
-          <Text className="text-xl font-bold text-primary tracking-tight">¡Bienvenido a Tavero!</Text>
+          <Text className="text-xl font-bold text-primary tracking-tight">{t('dashboard.welcome')}</Text>
           <Text className="text-muted text-sm text-center px-6 leading-relaxed">
-            Crea tu bar para empezar a digitalizar tu menú y generar tu código QR.
+            {t('dashboard.welcomeBody')}
           </Text>
           <Button
-            label="Crear mi bar"
+            label={t('dashboard.createBar')}
             onPress={() => router.push('/(app)/restaurant/setup')}
             className="w-full mt-3"
           />
@@ -81,7 +83,7 @@ export default function DashboardScreen() {
   const menuUrl = `${MENU_BASE_URL}/${restaurant.slug}`
 
   const handleShare = async () => {
-    await Share.share({ message: `Consulta nuestro menú: ${menuUrl}`, url: menuUrl })
+    await Share.share({ message: `${t('dashboard.shareMessage')}${menuUrl}`, url: menuUrl })
   }
 
   return (
@@ -106,56 +108,56 @@ export default function DashboardScreen() {
             </View>
           )}
           <View className="flex-1 ml-3">
-            <Text className="text-[11px] text-muted font-medium uppercase tracking-wider">Tu bar</Text>
+            <Text className="text-[11px] text-muted font-medium uppercase tracking-wider">{t('dashboard.yourBar')}</Text>
             <Text className="text-xl font-bold text-primary tracking-tight" numberOfLines={1}>
               {restaurant.name}
             </Text>
           </View>
         </Pressable>
         <Pressable onPress={signOut} hitSlop={8}>
-          <Text className="text-muted text-sm font-medium">Salir</Text>
+          <Text className="text-muted text-sm font-medium">{t('common.signOut')}</Text>
         </Pressable>
       </View>
 
       {/* QR Card */}
       <Card className="items-center gap-3 mb-5 py-6">
-        <Text className="text-[11px] font-bold text-muted uppercase tracking-widest">Tu menú</Text>
+        <Text className="text-[11px] font-bold text-muted uppercase tracking-widest">{t('dashboard.yourMenu')}</Text>
         <View className="p-4 bg-accentSoft rounded-2xl">
           <QRCode value={menuUrl} size={170} backgroundColor="#CCFBF1" color="#134E4A" />
         </View>
-        <Button label="Compartir menú" onPress={handleShare} variant="accent" className="w-full mt-1" />
+        <Button label={t('dashboard.shareMenu')} onPress={handleShare} variant="accent" className="w-full mt-1" />
       </Card>
 
       {/* Navigation */}
       <View className="gap-2.5 mb-5">
         <NavCard
           icon="👀"
-          label="Vista previa del menú"
-          description="Cómo lo ven tus clientes"
+          label={t('dashboard.menuPreview')}
+          description={t('dashboard.menuPreviewDesc')}
           onPress={() => router.push('/(app)/menu-preview')}
         />
         <NavCard
           icon="🎨"
-          label="Colores del menú"
-          description="Personaliza la apariencia de tu menú"
+          label={t('dashboard.menuColors')}
+          description={t('dashboard.menuColorsDesc')}
           onPress={() => router.push('/(app)/menu-colors')}
         />
         <NavCard
           icon="📂"
-          label="Categorías"
-          description="Gestiona secciones de tu menú"
+          label={t('dashboard.categories')}
+          description={t('dashboard.categoriesDesc')}
           onPress={() => router.push('/(app)/categories')}
         />
         <NavCard
           icon="🍽️"
-          label="Productos"
-          description="Añade y edita platos y bebidas"
+          label={t('dashboard.products')}
+          description={t('dashboard.productsDesc')}
           onPress={() => router.push('/(app)/products')}
         />
         <NavCard
           icon="⚙️"
-          label="Configuración"
-          description="Modo oscuro y preferencias de la app"
+          label={t('dashboard.settings')}
+          description={t('dashboard.settingsDesc')}
           onPress={() => router.push('/(app)/settings')}
         />
       </View>

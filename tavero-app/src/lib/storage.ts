@@ -26,22 +26,27 @@ export async function uploadImage(
   ownerId: string,
   itemId: string,
 ): Promise<string | null> {
-  const ext = uri.split('.').pop()?.split('?')[0] ?? 'jpg'
-  const path = `${target}/${ownerId}/${itemId}.${ext}`
+  try {
+    const ext = uri.split('.').pop()?.split('?')[0] ?? 'jpg'
+    const path = `${target}/${ownerId}/${itemId}.${ext}`
 
-  const arraybuffer = await fetch(uri).then((r) => r.arrayBuffer())
+    const arraybuffer = await fetch(uri).then((r) => r.arrayBuffer())
 
-  const { error } = await supabase.storage
-    .from(BUCKET)
-    .upload(path, arraybuffer, { upsert: true, contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}` })
+    const { error } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, arraybuffer, { upsert: true, contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}` })
 
-  if (error) {
-    console.error('Storage upload error:', error.message)
+    if (error) {
+      console.error('Storage upload error:', error.message)
+      return null
+    }
+
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path)
+    return data.publicUrl
+  } catch (err) {
+    console.error('Unexpected storage upload error:', err)
     return null
   }
-
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path)
-  return data.publicUrl
 }
 
 export async function pickAndUpload(

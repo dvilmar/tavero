@@ -1,8 +1,10 @@
 import { useCallback, useMemo, useState } from 'react'
 import {
-  Image, Pressable, ScrollView, Switch, Text, TextInput, View,
+  Alert, Image, Pressable, ScrollView, Switch, Text, TextInput, View,
 } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
+import { useTranslation } from 'react-i18next'
+import { useColorScheme } from 'nativewind'
 import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist'
 import { Svg, Circle, Line } from 'react-native-svg'
 import { supabase } from '@/lib/supabase'
@@ -11,6 +13,7 @@ import { haptic } from '@/lib/haptics'
 import { Card } from '@/components/ui/Card'
 import { Header } from '@/components/ui/Header'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { DragHandle } from '@/components/ui/DragHandle'
 import { ProductRowSkeleton } from '@/components/ui/Skeleton'
 import type { Category, Product } from '@/lib/types'
 
@@ -25,30 +28,33 @@ function SearchIcon() {
   )
 }
 
-function DragHandle() {
-  return (
-    <View style={{ width: 18, gap: 4, alignItems: 'center' }}>
-      {[0, 1, 2].map((i) => (
-        <View key={i} style={{ width: 18, height: 2.5, backgroundColor: '#CBD5E1', borderRadius: 2 }} />
-      ))}
-    </View>
-  )
-}
-
 export default function ProductsScreen() {
   const { restaurant } = useRestaurant()
+  const { t, i18n } = useTranslation()
+  const { colorScheme } = useColorScheme()
+  const isDark = colorScheme === 'dark'
   const [sections, setSections] = useState<Section[]>([])
   const [count, setCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
   const load = useCallback(async () => {
-    if (!restaurant) return
+    if (!restaurant) {
+      setSections([])
+      setCount(0)
+      setLoading(false)
+      return
+    }
     setLoading(true)
-    const [{ data: cats }, { data: prods }] = await Promise.all([
+    const [{ data: cats, error: categoriesError }, { data: prods, error: productsError }] = await Promise.all([
       supabase.from('categories').select('*').eq('restaurant_id', restaurant.id).order('sort_order'),
       supabase.from('products').select('*').eq('restaurant_id', restaurant.id).order('sort_order'),
     ])
+    if (categoriesError || productsError) {
+      Alert.alert(t('common.error'), (categoriesError ?? productsError)?.message ?? '')
+      setLoading(false)
+      return
+    }
     const built: Section[] = (cats ?? []).map((cat: Category) => ({
       title: cat.name,
       catId: cat.id,
@@ -57,7 +63,7 @@ export default function ProductsScreen() {
     setSections(built)
     setCount(prods?.length ?? 0)
     setLoading(false)
-  }, [restaurant])
+  }, [restaurant, t])
 
   useFocusEffect(useCallback(() => { load() }, [load]))
 
@@ -71,7 +77,11 @@ export default function ProductsScreen() {
 
   const handleToggle = async (product: Product) => {
     haptic.select()
-    await supabase.from('products').update({ is_active: !product.is_active }).eq('id', product.id)
+    const { error } = await supabase.from('products').update({ is_active: !product.is_active }).eq('id', product.id)
+    if (error) {
+      Alert.alert(t('common.error'), error.message)
+      return
+    }
     setSections((prev) =>
       prev.map((s) => ({ ...s, data: s.data.map((p) => p.id === product.id ? { ...p, is_active: !product.is_active } : p) }))
     )
@@ -81,14 +91,24 @@ export default function ProductsScreen() {
     const reordered = data.map((p, i) => ({ ...p, sort_order: i }))
     setSections((prev) => prev.map((s) => s.catId === catId ? { ...s, data: reordered } : s))
     haptic.light()
-    await Promise.all(reordered.map((p) =>
+    const results = await Promise.all(reordered.map((p) =>
       supabase.from('products').update({ sort_order: p.sort_order }).eq('id', p.id)
     ))
+    const firstError = results.find((result) => result.error)?.error
+    if (firstError) {
+      Alert.alert(t('common.error'), firstError.message)
+      load()
+    }
   }
 
   const isSearching = search.trim().length > 0
+  const visibleProductsCount = filtered.reduce((acc, section) => acc + section.data.length, 0)
+  const moneyFormatter = useMemo(
+    () => new Intl.NumberFormat(i18n.language === 'en' ? 'en-GB' : 'es-ES', { style: 'currency', currency: 'EUR' }),
+    [i18n.language]
+  )
 
-  const renderItem = (catId: string) => ({ item, drag, isActive }: RenderItemParams<Product>) => (
+  const renderItem = ({ item, drag, isActive }: RenderItemParams<Product>) => (
     <ScaleDecorator>
       <View style={{ marginBottom: 10, opacity: isActive ? 0.9 : 1 }}>
         <Card className="p-3">
@@ -126,15 +146,15 @@ export default function ProductsScreen() {
                 <Text className="text-muted text-xs mt-0.5" numberOfLines={1}>{item.description}</Text>
               ) : null}
               <Text className="text-accent font-bold text-sm mt-1">
-                {Number(item.price).toFixed(2)} €
+                {moneyFormatter.format(Number(item.price))}
               </Text>
             </Pressable>
 
             <Switch
               value={item.is_active}
               onValueChange={() => handleToggle(item)}
-              trackColor={{ true: '#0D9488', false: '#E7E5E4' }}
-              thumbColor="#fff"
+              trackColor={{ true: '#0D9488', false: isDark ? '#4B5563' : '#E7E5E4' }}
+              thumbColor={isDark ? '#F3F4F6' : '#FFFFFF'}
             />
           </View>
         </Card>
@@ -144,7 +164,7 @@ export default function ProductsScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <Header title="Productos" subtitle={`${count} en total`} />
+      <Header title={t('products.title')} subtitle={t('common.totalCount', { count })} />
 
       <View className="px-5 pt-3 pb-1">
         <View className="bg-surface border border-border rounded-xl px-3.5 py-2.5 flex-row items-center">
@@ -154,7 +174,7 @@ export default function ProductsScreen() {
           <TextInput
             value={search}
             onChangeText={setSearch}
-            placeholder="Buscar producto..."
+            placeholder={t('products.searchPlaceholder')}
             placeholderTextColor="#94A3B8"
             className="flex-1 text-primary text-[15px]"
             autoCapitalize="none"
@@ -173,11 +193,11 @@ export default function ProductsScreen() {
         <View className="px-5 pt-4">
           {[0, 1, 2, 3].map((i) => <ProductRowSkeleton key={i} />)}
         </View>
-      ) : filtered.length === 0 && !loading ? (
+      ) : visibleProductsCount === 0 && !loading ? (
         <EmptyState
           icon={isSearching ? '🔍' : '🍽️'}
-          title={isSearching ? 'Sin resultados' : 'Aún no tienes productos'}
-          description={isSearching ? `Nada coincide con "${search}".` : 'Añade tu primer plato o bebida al menú.'}
+          title={isSearching ? t('products.emptySearchTitle') : t('products.emptyTitle')}
+          description={isSearching ? t('products.emptySearchDesc', { search }) : t('products.emptyDesc')}
         />
       ) : (
         <ScrollView
@@ -192,7 +212,7 @@ export default function ProductsScreen() {
                 data={section.data}
                 onDragEnd={({ data }) => handleDragEnd(section.catId, data)}
                 keyExtractor={(item) => item.id}
-                renderItem={renderItem(section.catId)}
+                renderItem={renderItem}
                 scrollEnabled={false}
               />
             </View>

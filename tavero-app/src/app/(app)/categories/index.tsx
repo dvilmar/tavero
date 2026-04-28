@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react'
 import { Alert, Modal, Pressable, Switch, Text, View } from 'react-native'
 import { useFocusEffect } from 'expo-router'
+import { useTranslation } from 'react-i18next'
+import { useColorScheme } from 'nativewind'
 import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist'
 import { supabase } from '@/lib/supabase'
 import { useRestaurant } from '@/context/RestaurantContext'
@@ -10,6 +12,7 @@ import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
 import { Header } from '@/components/ui/Header'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { DragHandle } from '@/components/ui/DragHandle'
 import { Badge } from '@/components/ui/Badge'
 import { Toast } from '@/components/ui/Toast'
 import { CategoryRowSkeleton } from '@/components/ui/Skeleton'
@@ -19,18 +22,11 @@ import type { Category } from '@/lib/types'
 type FormState = { name: string; description: string }
 const emptyForm: FormState = { name: '', description: '' }
 
-function DragHandle() {
-  return (
-    <View style={{ width: 18, gap: 4, alignItems: 'center' }}>
-      {[0, 1, 2].map((i) => (
-        <View key={i} style={{ width: 18, height: 2.5, backgroundColor: '#CBD5E1', borderRadius: 2 }} />
-      ))}
-    </View>
-  )
-}
-
 export default function CategoriesScreen() {
   const { restaurant } = useRestaurant()
+  const { t } = useTranslation()
+  const { colorScheme } = useColorScheme()
+  const isDark = colorScheme === 'dark'
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [modalVisible, setModalVisible] = useState(false)
@@ -40,16 +36,25 @@ export default function CategoriesScreen() {
   const toast = useToast()
 
   const load = useCallback(async () => {
-    if (!restaurant) return
+    if (!restaurant) {
+      setCategories([])
+      setLoading(false)
+      return
+    }
     setLoading(true)
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('categories')
       .select('*')
       .eq('restaurant_id', restaurant.id)
       .order('sort_order', { ascending: true })
+    if (error) {
+      Alert.alert(t('common.error'), error.message)
+      setLoading(false)
+      return
+    }
     setCategories(data ?? [])
     setLoading(false)
-  }, [restaurant])
+  }, [restaurant, t])
 
   useFocusEffect(useCallback(() => { load() }, [load]))
 
@@ -61,39 +66,53 @@ export default function CategoriesScreen() {
   }
 
   const handleSave = async () => {
-    if (!form.name.trim()) { Alert.alert('Error', 'El nombre es obligatorio'); return }
+    if (!restaurant) return
+    if (!form.name.trim()) { Alert.alert(t('common.error'), t('categories.nameRequired')); return }
     setSaving(true)
     const payload = { name: form.name.trim(), description: form.description.trim() || null }
     if (editing) {
-      await supabase.from('categories').update(payload).eq('id', editing.id)
+      const { error } = await supabase.from('categories').update(payload).eq('id', editing.id)
+      if (error) { Alert.alert(t('common.error'), error.message); setSaving(false); return }
     } else {
-      await supabase.from('categories').insert({ ...payload, sort_order: categories.length, restaurant_id: restaurant!.id })
+      const nextSortOrder = categories.length > 0
+        ? Math.max(...categories.map((c) => c.sort_order)) + 1
+        : 0
+      const { error } = await supabase.from('categories').insert({ ...payload, sort_order: nextSortOrder, restaurant_id: restaurant.id })
+      if (error) { Alert.alert(t('common.error'), error.message); setSaving(false); return }
     }
     setSaving(false)
     setModalVisible(false)
     haptic.success()
-    toast.show(editing ? 'Categoría actualizada' : 'Categoría creada')
+    toast.show(editing ? t('categories.updated') : t('categories.created'))
     load()
   }
 
   const handleToggle = async (cat: Category) => {
     haptic.select()
-    await supabase.from('categories').update({ is_active: !cat.is_active }).eq('id', cat.id)
+    const { error } = await supabase.from('categories').update({ is_active: !cat.is_active }).eq('id', cat.id)
+    if (error) {
+      Alert.alert(t('common.error'), error.message)
+      return
+    }
     setCategories((prev) => prev.map((c) => c.id === cat.id ? { ...c, is_active: !cat.is_active } : c))
   }
 
   const handleDelete = (cat: Category) => {
     Alert.alert(
-      'Eliminar categoría',
-      `¿Seguro que quieres eliminar "${cat.name}"? Se borrarán también sus productos.`,
+      t('categories.deleteTitle'),
+      t('categories.deleteConfirm', { name: cat.name }),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Eliminar', style: 'destructive',
+          text: t('common.delete'), style: 'destructive',
           onPress: async () => {
-            await supabase.from('categories').delete().eq('id', cat.id)
+            const { error } = await supabase.from('categories').delete().eq('id', cat.id)
+            if (error) {
+              Alert.alert(t('common.error'), error.message)
+              return
+            }
             haptic.success()
-            toast.show('Categoría eliminada')
+            toast.show(t('categories.deleted'))
             load()
           },
         },
@@ -105,9 +124,14 @@ export default function CategoriesScreen() {
     const reordered = data.map((c, i) => ({ ...c, sort_order: i }))
     setCategories(reordered)
     haptic.light()
-    await Promise.all(reordered.map((c) =>
+    const results = await Promise.all(reordered.map((c) =>
       supabase.from('categories').update({ sort_order: c.sort_order }).eq('id', c.id)
     ))
+    const firstError = results.find((result) => result.error)?.error
+    if (firstError) {
+      Alert.alert(t('common.error'), firstError.message)
+      load()
+    }
   }
 
   const renderItem = ({ item, drag, isActive }: RenderItemParams<Category>) => (
@@ -128,7 +152,10 @@ export default function CategoriesScreen() {
                 <Text className={`font-semibold text-base ${item.is_active ? 'text-primary' : 'text-mutedLight line-through'}`}>
                   {item.name}
                 </Text>
-                <Badge label={item.is_active ? 'Activa' : 'Oculta'} variant={item.is_active ? 'success' : 'muted'} />
+                <Badge
+                  label={item.is_active ? t('categories.active') : t('categories.hidden')}
+                  variant={item.is_active ? 'success' : 'muted'}
+                />
               </View>
               {item.description ? (
                 <Text className="text-muted text-sm leading-relaxed">{item.description}</Text>
@@ -138,14 +165,14 @@ export default function CategoriesScreen() {
             <Switch
               value={item.is_active}
               onValueChange={() => handleToggle(item)}
-              trackColor={{ true: '#0D9488', false: '#E7E5E4' }}
-              thumbColor="#fff"
+              trackColor={{ true: '#0D9488', false: isDark ? '#4B5563' : '#E7E5E4' }}
+              thumbColor={isDark ? '#F3F4F6' : '#FFFFFF'}
             />
           </View>
 
           <View className="flex-row gap-2 mt-4 pt-4 border-t border-borderSoft">
-            <Button label="Editar" onPress={() => openEdit(item)} variant="secondary" className="flex-1 py-2" />
-            <Button label="Eliminar" onPress={() => handleDelete(item)} variant="ghost" className="flex-1 py-2" />
+            <Button label={t('common.edit')} onPress={() => openEdit(item)} variant="secondary" className="flex-1 py-2" />
+            <Button label={t('common.delete')} onPress={() => handleDelete(item)} variant="ghost" className="flex-1 py-2" />
           </View>
         </Card>
       </View>
@@ -154,15 +181,14 @@ export default function CategoriesScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <Header title="Categorías" subtitle={`${categories.length} en total`} />
+      <Header title={t('categories.title')} subtitle={t('common.totalCount', { count: categories.length })} />
 
       {loading && categories.length === 0 ? (
         <View className="px-5 py-5">
           {[0, 1, 2].map((i) => <CategoryRowSkeleton key={i} />)}
         </View>
       ) : categories.length === 0 && !loading ? (
-        <EmptyState icon="📂" title="Aún no tienes categorías"
-          description="Crea tu primera sección del menú: tapas, bebidas, postres…" />
+        <EmptyState icon="📂" title={t('categories.empty')} description={t('categories.emptyDesc')} />
       ) : (
         <DraggableFlatList
           data={categories}
@@ -187,20 +213,20 @@ export default function CategoriesScreen() {
         <View className="flex-1 bg-background px-5 pt-8">
           <View className="flex-row items-center justify-between mb-6">
             <Text className="text-2xl font-bold text-primary tracking-tight">
-              {editing ? 'Editar categoría' : 'Nueva categoría'}
+              {editing ? t('categories.editTitle') : t('categories.newTitle')}
             </Text>
             <Pressable onPress={() => setModalVisible(false)} hitSlop={8}>
-              <Text className="text-muted font-medium">Cancelar</Text>
+              <Text className="text-muted font-medium">{t('common.cancel')}</Text>
             </Pressable>
           </View>
           <View className="gap-4">
-            <Input label="Nombre" value={form.name}
+            <Input label={t('categories.nameLabel')} value={form.name}
               onChangeText={(v) => setForm((f) => ({ ...f, name: v }))}
-              placeholder="Tapas, bebidas, postres..." />
-            <Input label="Descripción (opcional)" value={form.description}
+              placeholder={t('categories.namePlaceholder')} />
+            <Input label={t('categories.descLabel')} value={form.description}
               onChangeText={(v) => setForm((f) => ({ ...f, description: v }))}
-              placeholder="Una breve descripción" multiline />
-            <Button label="Guardar" onPress={handleSave} loading={saving} className="mt-2" />
+              placeholder={t('categories.descPlaceholder')} multiline />
+            <Button label={t('categories.save')} onPress={handleSave} loading={saving} className="mt-2" />
           </View>
         </View>
       </Modal>

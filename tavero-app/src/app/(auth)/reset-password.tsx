@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
+import { translateAuthError } from '@/lib/authErrors'
 import { Button } from '@/components/ui/Button'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 
@@ -11,18 +13,19 @@ export default function ResetPasswordScreen() {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
   const [done, setDone]         = useState(false)
+  const { t } = useTranslation()
 
   const handleReset = async () => {
     setError('')
-    if (!password || !confirm)  { setError('Completa los dos campos'); return }
-    if (password.length < 6)    { setError('La contraseña debe tener al menos 6 caracteres'); return }
-    if (password !== confirm)   { setError('Las contraseñas no coinciden'); return }
+    if (!password || !confirm)  { setError(t('resetPassword.errors.fieldsRequired')); return }
+    if (password.length < 6)    { setError(t('resetPassword.errors.passwordTooShort')); return }
+    if (password !== confirm)   { setError(t('resetPassword.errors.passwordsMismatch')); return }
 
     setLoading(true)
     const { error } = await supabase.auth.updateUser({ password })
     setLoading(false)
 
-    if (error) { setError(error.message); return }
+    if (error) { setError(translateAuthError(error.message)); return }
     setDone(true)
   }
 
@@ -35,12 +38,12 @@ export default function ResetPasswordScreen() {
           </View>
         </View>
         <Text className="text-3xl font-bold text-primary mb-2 text-center tracking-tight">
-          ¡Contraseña actualizada!
+          {t('resetPassword.successTitle')}
         </Text>
         <Text className="text-muted text-base mb-8 text-center leading-relaxed">
-          Ya puedes iniciar sesión con tu nueva contraseña.
+          {t('resetPassword.successBody')}
         </Text>
-        <Button label="Ir al inicio de sesión" onPress={() => router.replace('/(auth)/login')} />
+        <Button label={t('resetPassword.goToLogin')} onPress={() => router.replace('/(auth)/login')} />
       </View>
     )
   }
@@ -55,22 +58,25 @@ export default function ResetPasswordScreen() {
           <View className="w-16 h-16 rounded-2xl bg-primary items-center justify-center mb-5">
             <Text className="text-3xl">🔑</Text>
           </View>
-          <Text className="text-3xl font-bold text-primary tracking-tight">Nueva contraseña</Text>
-          <Text className="text-muted mt-1 text-[15px]">Elige una contraseña segura</Text>
+          <Text className="text-3xl font-bold text-primary tracking-tight">{t('resetPassword.title')}</Text>
+          <Text className="text-muted mt-1 text-[15px]">{t('resetPassword.tagline')}</Text>
         </View>
 
         <View className="gap-4">
           <PasswordInput
-            label="Nueva contraseña"
+            label={t('resetPassword.newPassword')}
             value={password}
             onChangeText={setPassword}
-            placeholder="Mínimo 6 caracteres"
+            placeholder={t('resetPassword.passwordPlaceholder')}
+            returnKeyType="next"
           />
           <PasswordInput
-            label="Confirmar contraseña"
+            label={t('resetPassword.confirmPassword')}
             value={confirm}
             onChangeText={setConfirm}
-            placeholder="Repite la contraseña"
+            placeholder={t('resetPassword.confirmPlaceholder')}
+            onSubmitEditing={handleReset}
+            returnKeyType="done"
           />
 
           {error ? (
@@ -79,7 +85,7 @@ export default function ResetPasswordScreen() {
             </View>
           ) : null}
 
-          <Button label="Guardar contraseña" onPress={handleReset} loading={loading} className="mt-2" />
+          <Button label={t('resetPassword.submit')} onPress={handleReset} loading={loading} className="mt-2" />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

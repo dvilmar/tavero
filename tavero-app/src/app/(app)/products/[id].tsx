@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  Alert, KeyboardAvoidingView, Platform, Pressable,
+  ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable,
   ScrollView, Text, View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { pickAndUpload } from '@/lib/storage'
 import { useRestaurant } from '@/context/RestaurantContext'
@@ -16,15 +17,15 @@ import { Toast } from '@/components/ui/Toast'
 import { useToast } from '@/hooks/useToast'
 import type { Category } from '@/lib/types'
 
-const DAYS = [
-  { label: 'Lun', value: 1 },
-  { label: 'Mar', value: 2 },
-  { label: 'Mié', value: 3 },
-  { label: 'Jue', value: 4 },
-  { label: 'Vie', value: 5 },
-  { label: 'Sáb', value: 6 },
-  { label: 'Dom', value: 0 },
-]
+const DAYS_ORDER = [
+  { key: 'mon', value: 1 },
+  { key: 'tue', value: 2 },
+  { key: 'wed', value: 3 },
+  { key: 'thu', value: 4 },
+  { key: 'fri', value: 5 },
+  { key: 'sat', value: 6 },
+  { key: 'sun', value: 0 },
+] as const
 
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6]
 
@@ -33,6 +34,7 @@ export default function ProductEditScreen() {
   const isNew = id === 'new'
   const { restaurant } = useRestaurant()
   const insets = useSafeAreaInsets()
+  const { t } = useTranslation()
 
   const [categories, setCategories] = useState<Category[]>([])
   const [categoryId, setCategoryId] = useState('')
@@ -40,7 +42,7 @@ export default function ProductEditScreen() {
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
   const [imageUrl, setImageUrl] = useState<string | null>(null)
-  const [availableDays, setAvailableDays] = useState<number[]>([])
+  const [availableDays, setAvailableDays] = useState<number[]>(isNew ? ALL_DAYS : [])
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -66,14 +68,13 @@ export default function ProductEditScreen() {
       .select('*, product_availability(day_of_week)')
       .eq('id', id)
       .single()
-    if (!data) return
+    if (!data) { setLoading(false); return }
     setName(data.name)
     setDescription(data.description ?? '')
     setPrice(String(data.price))
     setCategoryId(data.category_id)
     setImageUrl(data.image_url ?? null)
     const days = (data.product_availability ?? []).map((a: { day_of_week: number }) => a.day_of_week)
-    // Empty array means available every day → show all days highlighted
     setAvailableDays(days.length === 0 ? ALL_DAYS : days)
     setLoading(false)
   }, [id, isNew])
@@ -91,15 +92,33 @@ export default function ProductEditScreen() {
 
   const validate = () => {
     const e: typeof errors = {}
-    if (!name.trim()) e.name = 'El nombre es obligatorio'
-    if (!price || isNaN(Number(price)) || Number(price) < 0) e.price = 'Precio inválido'
-    if (!categoryId) e.category = 'Selecciona una categoría'
+    const normalizedPrice = price.replace(',', '.')
+    if (!name.trim()) e.name = t('products.nameRequired')
+    if (!normalizedPrice || isNaN(Number(normalizedPrice)) || Number(normalizedPrice) < 0) e.price = t('products.priceInvalid')
+    if (!categoryId) e.category = t('products.categoryRequired')
     setErrors(e)
     return Object.keys(e).length === 0
   }
 
-  // Ensures the product row exists before uploading (needed for new products)
+  const getNextSortOrder = useCallback(async (currentCategoryId: string): Promise<number> => {
+    if (!restaurant) return 0
+    const { data, error } = await supabase
+      .from('products')
+      .select('sort_order')
+      .eq('restaurant_id', restaurant.id)
+      .eq('category_id', currentCategoryId)
+      .order('sort_order', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (error) {
+      console.error('Error calculating next product sort_order', error)
+      return 0
+    }
+    return data?.sort_order != null ? data.sort_order + 1 : 0
+  }, [restaurant])
+
   const ensureProductSaved = async (): Promise<string | null> => {
+    if (!restaurant) return null
     if (savedProductId) return savedProductId
     if (!validate()) return null
 
@@ -109,87 +128,113 @@ export default function ProductEditScreen() {
       .insert({
         name: name.trim(),
         description: description.trim() || null,
-        price: parseFloat(price) || 0,
-        sort_order: 0,
+        price: parseFloat(price.replace(',', '.')) || 0,
+        sort_order: await getNextSortOrder(categoryId),
         category_id: categoryId,
-        restaurant_id: restaurant!.id,
+        restaurant_id: restaurant.id,
       })
       .select('id')
       .single()
     setSaving(false)
 
-    if (error) { Alert.alert('Error', error.message); return null }
+    if (error) { Alert.alert(t('common.error'), error.message); return null }
     setSavedProductId(data.id)
     return data.id
   }
 
   const handlePickImage = async () => {
-    // For new products, save first so we have a real ID for the storage path
+    if (!restaurant) return
     const productId = await ensureProductSaved()
     if (!productId) return
 
     setUploading(true)
-    const url = await pickAndUpload('products', restaurant!.id, productId)
-    setUploading(false)
-
-    if (!url) return
-    setImageUrl(url)
-
-    // Persist immediately so the URL is not lost if the user navigates away
-    await supabase.from('products').update({ image_url: url }).eq('id', productId)
+    try {
+      const url = await pickAndUpload('products', restaurant.id, productId)
+      if (!url) return
+      setImageUrl(url)
+      await supabase.from('products').update({ image_url: url }).eq('id', productId)
+    } finally {
+      setUploading(false)
+    }
   }
 
   const handleSave = async () => {
+    if (!restaurant) return
     if (!validate()) return
     setSaving(true)
 
     const payload = {
       name: name.trim(),
       description: description.trim() || null,
-      price: parseFloat(price),
+      price: parseFloat(price.replace(',', '.')),
       category_id: categoryId,
-      restaurant_id: restaurant!.id,
+      restaurant_id: restaurant.id,
       image_url: imageUrl,
     }
 
     let productId = savedProductId ?? id
     if (isNew && !savedProductId) {
-      const { data, error } = await supabase.from('products').insert({ ...payload, sort_order: 0 }).select('id').single()
-      if (error) { Alert.alert('Error', error.message); setSaving(false); return }
+      const nextSortOrder = await getNextSortOrder(categoryId)
+      const { data, error } = await supabase.from('products').insert({ ...payload, sort_order: nextSortOrder }).select('id').single()
+      if (error) { Alert.alert(t('common.error'), error.message); setSaving(false); return }
       productId = data.id
     } else {
       const { error } = await supabase.from('products').update(payload).eq('id', productId)
-      if (error) { Alert.alert('Error', error.message); setSaving(false); return }
+      if (error) { Alert.alert(t('common.error'), error.message); setSaving(false); return }
     }
 
-    // Todos los días = disponible siempre (guardamos array vacío)
     const daysToSave = availableDays.length === 7 ? [] : availableDays
-    await supabase.from('product_availability').delete().eq('product_id', productId)
+    const { error: deleteAvailabilityError } = await supabase
+      .from('product_availability')
+      .delete()
+      .eq('product_id', productId)
+    if (deleteAvailabilityError) {
+      Alert.alert(t('common.error'), deleteAvailabilityError.message)
+      setSaving(false)
+      return
+    }
     if (daysToSave.length > 0) {
-      await supabase.from('product_availability').insert(
+      const { error: insertAvailabilityError } = await supabase
+        .from('product_availability')
+        .insert(
         daysToSave.map((day) => ({ product_id: productId, day_of_week: day }))
       )
+      if (insertAvailabilityError) {
+        Alert.alert(t('common.error'), insertAvailabilityError.message)
+        setSaving(false)
+        return
+      }
     }
 
     setSaving(false)
-    toast.show(isNew ? 'Producto creado' : 'Producto guardado')
+    toast.show(isNew ? t('products.created') : t('products.saved'))
     setTimeout(() => router.back(), 600)
   }
 
   const handleDelete = () => {
-    Alert.alert('Eliminar producto', `¿Eliminar "${name}"?`, [
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert(t('products.deleteTitle'), t('products.deleteConfirm', { name }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Eliminar', style: 'destructive',
+        text: t('common.delete'), style: 'destructive',
         onPress: async () => {
-          await supabase.from('products').delete().eq('id', savedProductId ?? id)
+          const { error } = await supabase.from('products').delete().eq('id', savedProductId ?? id)
+          if (error) {
+            Alert.alert(t('common.error'), error.message)
+            return
+          }
           router.back()
         },
       },
     ])
   }
 
-  if (loading) return null
+  if (loading) {
+    return (
+      <View className="flex-1 bg-background items-center justify-center">
+        <ActivityIndicator size="large" color="#0D9488" />
+      </View>
+    )
+  }
 
   return (
     <KeyboardAvoidingView
@@ -197,52 +242,48 @@ export default function ProductEditScreen() {
       className="flex-1 bg-background"
     >
       {/* Header */}
-      <View className="px-6 pt-14 pb-4 bg-white border-b border-border flex-row items-center">
+      <View className="px-6 pt-14 pb-4 bg-surface border-b border-border flex-row items-center">
         <Pressable onPress={() => router.back()} className="mr-4 w-9 h-9 rounded-full bg-borderSoft items-center justify-center" hitSlop={8}>
           <Text className="text-primary text-2xl leading-none" style={{ marginTop: -2 }}>‹</Text>
         </Pressable>
         <Text className="text-xl font-bold text-primary flex-1">
-          {isNew ? 'Nuevo producto' : 'Editar producto'}
+          {isNew ? t('products.newTitle') : t('products.editTitle')}
         </Text>
         {!isNew && (
           <Pressable onPress={handleDelete}>
-            <Text className="text-danger font-semibold">Eliminar</Text>
+            <Text className="text-danger font-semibold">{t('common.delete')}</Text>
           </Pressable>
         )}
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 24 + insets.bottom, gap: 20 }}>
-        {/* Imagen */}
         <ImagePickerField
-          label="Foto del plato (opcional)"
+          label={t('products.photoLabel')}
           imageUrl={imageUrl}
           onPress={handlePickImage}
           uploading={uploading}
           aspectRatio={16 / 9}
         />
 
-        {/* Nombre */}
         <Input
-          label="Nombre"
+          label={t('products.nameLabel')}
           value={name}
           onChangeText={setName}
-          placeholder="Patatas bravas"
+          placeholder={t('products.namePlaceholder')}
           error={errors.name}
         />
 
-        {/* Descripción */}
         <Input
-          label="Descripción (opcional)"
+          label={t('products.descLabel')}
           value={description}
           onChangeText={setDescription}
-          placeholder="Con salsa brava y alioli"
+          placeholder={t('products.descPlaceholder')}
           multiline
           numberOfLines={2}
         />
 
-        {/* Precio */}
         <Input
-          label="Precio (€)"
+          label={t('products.priceLabel')}
           value={price}
           onChangeText={setPrice}
           keyboardType="decimal-pad"
@@ -250,15 +291,13 @@ export default function ProductEditScreen() {
           error={errors.price}
         />
 
-        {/* Categoría */}
+        {/* Category */}
         <View className="gap-2">
-          <Text className="text-sm font-medium text-primary">Categoría</Text>
+          <Text className="text-sm font-medium text-primary">{t('products.categoryLabel')}</Text>
           {categories.length === 0 ? (
             <View className="bg-accentSoft border border-accent/20 rounded-xl px-4 py-3">
-              <Text className="text-sm text-primary font-medium">No tienes categorías aún</Text>
-              <Text className="text-xs text-muted mt-1">
-                Crea al menos una categoría antes de añadir productos.
-              </Text>
+              <Text className="text-sm text-primary font-medium">{t('products.noCategoriesTitle')}</Text>
+              <Text className="text-xs text-muted mt-1">{t('products.noCategoriesDesc')}</Text>
             </View>
           ) : (
             <View className="flex-row flex-wrap gap-2">
@@ -284,25 +323,23 @@ export default function ProductEditScreen() {
           {errors.category && <Text className="text-xs text-danger mt-0.5">{errors.category}</Text>}
         </View>
 
-        {/* Disponibilidad por días */}
+        {/* Availability */}
         <Card>
-          <Text className="text-sm font-semibold text-primary mb-1">Disponibilidad</Text>
-          <Text className="text-xs text-muted mb-3">
-            Todos los días marcados = disponible toda la semana
-          </Text>
+          <Text className="text-sm font-semibold text-primary mb-1">{t('products.availabilityLabel')}</Text>
+          <Text className="text-xs text-muted mb-3">{t('products.availabilityHint')}</Text>
           <View className="flex-row justify-between">
-            {DAYS.map((day) => {
+            {DAYS_ORDER.map((day) => {
               const active = availableDays.includes(day.value)
               return (
                 <Pressable
                   key={day.value}
                   onPress={() => toggleDay(day.value)}
                   className={`items-center justify-center w-10 h-10 rounded-full border ${
-                    active ? 'bg-primary border-primary' : 'bg-white border-border'
+                    active ? 'bg-primary border-primary' : 'bg-surface border-border'
                   }`}
                 >
                   <Text className={`text-xs font-semibold ${active ? 'text-white' : 'text-muted'}`}>
-                    {day.label}
+                    {t(`products.days.${day.key}`)}
                   </Text>
                 </Pressable>
               )
@@ -310,7 +347,7 @@ export default function ProductEditScreen() {
           </View>
         </Card>
 
-        <Button label="Guardar producto" onPress={handleSave} loading={saving} />
+        <Button label={t('products.submit')} onPress={handleSave} loading={saving} />
       </ScrollView>
       <Toast message={toast.message} visible={toast.visible} />
     </KeyboardAvoidingView>

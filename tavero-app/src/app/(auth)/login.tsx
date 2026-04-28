@@ -1,36 +1,32 @@
 import { useState } from 'react'
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
+import { checkEmailExists } from '@/lib/auth'
 import { translateAuthError } from '@/lib/authErrors'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PasswordInput } from '@/components/ui/PasswordInput'
-
-const CHECK_EMAIL_URL = `${process.env.EXPO_PUBLIC_MENU_URL?.replace('/menu', '') ?? 'https://tavero-web.vercel.app'}/api/check-email`
 
 export default function LoginScreen() {
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
+  const { t } = useTranslation()
 
   const handleLogin = async () => {
     setError('')
-    if (!email.trim()) { setError('Introduce tu email'); return }
-    if (!password)     { setError('Introduce tu contraseña'); return }
+    if (!email.trim()) { setError(t('login.errors.emailRequired')); return }
+    if (!password)     { setError(t('login.errors.passwordRequired')); return }
 
     setLoading(true)
 
     try {
-      const res = await fetch(CHECK_EMAIL_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
-      })
-      const { exists } = await res.json()
+      const exists = await checkEmailExists(email.trim())
       if (!exists) {
-        setError('No existe ninguna cuenta con ese email. ¿Quieres registrarte?')
+        setError(t('login.errors.noAccount'))
         setLoading(false)
         return
       }
@@ -56,24 +52,27 @@ export default function LoginScreen() {
             <Text className="text-3xl">🍽️</Text>
           </View>
           <Text className="text-4xl font-bold text-primary tracking-tight">Tavero</Text>
-          <Text className="text-muted mt-1.5 text-[15px]">Gestiona el menú de tu bar</Text>
+          <Text className="text-muted mt-1.5 text-[15px]">{t('login.tagline')}</Text>
         </View>
 
         <View className="gap-4">
           <Input
-            label="Email"
+            label={t('login.email')}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
-            placeholder="tu@email.com"
+            placeholder={t('login.emailPlaceholder')}
+            returnKeyType="next"
           />
           <PasswordInput
-            label="Contraseña"
+            label={t('login.password')}
             value={password}
             onChangeText={setPassword}
-            placeholder="••••••••"
+            placeholder={t('login.passwordPlaceholder')}
+            onSubmitEditing={handleLogin}
+            returnKeyType="done"
           />
 
           {error ? (
@@ -82,21 +81,21 @@ export default function LoginScreen() {
             </View>
           ) : null}
 
-          <Button label="Iniciar sesión" onPress={handleLogin} loading={loading} className="mt-2" />
+          <Button label={t('login.submit')} onPress={handleLogin} loading={loading} className="mt-2" />
 
           <Pressable onPress={() => router.push('/(auth)/forgot-password')} className="items-center py-1">
             <Text className="text-muted text-sm">
-              ¿Olvidaste tu contraseña?{' '}
-              <Text className="text-accent font-semibold">Recupérala</Text>
+              {t('login.forgotPassword')}{' '}
+              <Text className="text-accent font-semibold">{t('login.recover')}</Text>
             </Text>
           </Pressable>
         </View>
 
         <View className="mt-10 pt-6 border-t border-border items-center">
           <Text className="text-muted text-sm">
-            ¿No tienes cuenta?{' '}
+            {t('login.noAccount')}{' '}
             <Text className="text-accent font-semibold" onPress={() => router.push('/(auth)/register')}>
-              Regístrate
+              {t('login.register')}
             </Text>
           </Text>
         </View>

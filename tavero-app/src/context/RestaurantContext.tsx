@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/AuthContext'
 import type { Restaurant } from '@/lib/types'
@@ -16,25 +16,31 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchRestaurant = async () => {
+  const fetchRestaurant = useCallback(async () => {
     if (!user) {
       setRestaurant(null)
       setLoading(false)
       return
     }
     setLoading(true)
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('restaurants')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: true })
       .limit(1)
       .maybeSingle()
+    if (error) {
+      console.error('Error loading restaurant', error)
+      setRestaurant(null)
+      setLoading(false)
+      return
+    }
     setRestaurant(data ?? null)
     setLoading(false)
-  }
+  }, [user])
 
-  useEffect(() => { fetchRestaurant() }, [user])
+  useEffect(() => { fetchRestaurant() }, [fetchRestaurant])
 
   return (
     <RestaurantContext.Provider value={{ restaurant, loading, refresh: fetchRestaurant }}>

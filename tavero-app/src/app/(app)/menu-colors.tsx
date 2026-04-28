@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useTranslation } from 'react-i18next'
 import { haptic } from '@/lib/haptics'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -10,53 +11,66 @@ import { useToast } from '@/hooks/useToast'
 import { useRestaurant } from '@/context/RestaurantContext'
 import { supabase } from '@/lib/supabase'
 
-const PALETTES = [
-  { id: 'amber',   label: 'Ámbar',      color: '#D97706', bg: '#FEF3C7' },
-  { id: 'emerald', label: 'Esmeralda',  color: '#059669', bg: '#D1FAE5' },
-  { id: 'indigo',  label: 'Índigo',     color: '#4F46E5', bg: '#EEF2FF' },
-  { id: 'teal',    label: 'Teal',       color: '#0D9488', bg: '#CCFBF1' },
-  { id: 'rose',    label: 'Rosa',       color: '#E11D48', bg: '#FFE4E6' },
-  { id: 'slate',   label: 'Pizarra',    color: '#475569', bg: '#F1F5F9' },
+type PaletteId = 'amber' | 'emerald' | 'indigo' | 'teal' | 'rose' | 'slate'
+type FontId = 'inter' | 'montserrat' | 'playfair' | 'lato'
+
+const PALETTES: { id: PaletteId; color: string; bg: string }[] = [
+  { id: 'amber',   color: '#D97706', bg: '#FEF3C7' },
+  { id: 'emerald', color: '#059669', bg: '#D1FAE5' },
+  { id: 'indigo',  color: '#4F46E5', bg: '#EEF2FF' },
+  { id: 'teal',    color: '#0D9488', bg: '#CCFBF1' },
+  { id: 'rose',    color: '#E11D48', bg: '#FFE4E6' },
+  { id: 'slate',   color: '#475569', bg: '#F1F5F9' },
 ]
 
-const FONTS = [
-  { id: 'inter',      label: 'Moderna',  sample: 'Menú', style: { fontFamily: undefined } },
-  { id: 'montserrat', label: 'Impacto',  sample: 'Menú', style: { fontWeight: '700' as const } },
-  { id: 'playfair',   label: 'Elegante', sample: 'Menú', style: { fontStyle: 'italic' as const } },
-  { id: 'lato',       label: 'Clásica',  sample: 'Menú', style: {} },
+const FONTS: { id: FontId; style: object }[] = [
+  { id: 'inter',      style: { fontFamily: undefined } },
+  { id: 'montserrat', style: { fontWeight: '700' as const } },
+  { id: 'playfair',   style: { fontStyle: 'italic' as const } },
+  { id: 'lato',       style: {} },
 ]
 
 export default function MenuColorsScreen() {
   const { restaurant, refresh } = useRestaurant()
   const insets = useSafeAreaInsets()
   const toast = useToast()
+  const { t } = useTranslation()
 
-  const [selectedPalette, setSelectedPalette] = useState(restaurant?.menu_accent_color ?? 'amber')
-  const [selectedFont, setSelectedFont] = useState(restaurant?.menu_font ?? 'inter')
+  const [selectedPalette, setSelectedPalette] = useState<PaletteId>(
+    (restaurant?.menu_accent_color as PaletteId) ?? 'amber'
+  )
+  const [selectedFont, setSelectedFont] = useState<FontId>(
+    (restaurant?.menu_font as FontId) ?? 'inter'
+  )
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (restaurant) {
-      setSelectedPalette(restaurant.menu_accent_color ?? 'amber')
-      setSelectedFont(restaurant.menu_font ?? 'inter')
+      setSelectedPalette((restaurant.menu_accent_color as PaletteId) ?? 'amber')
+      setSelectedFont((restaurant.menu_font as FontId) ?? 'inter')
     }
   }, [restaurant?.id])
 
   const hasChanges =
-    selectedPalette !== (restaurant?.menu_accent_color ?? 'amber') ||
-    selectedFont !== (restaurant?.menu_font ?? 'inter')
+    selectedPalette !== ((restaurant?.menu_accent_color as PaletteId) ?? 'amber') ||
+    selectedFont !== ((restaurant?.menu_font as FontId) ?? 'inter')
 
   const handleSave = async () => {
     if (!restaurant) return
     haptic.light()
     setSaving(true)
-    await supabase
+    const { error } = await supabase
       .from('restaurants')
       .update({ menu_accent_color: selectedPalette, menu_font: selectedFont })
       .eq('id', restaurant.id)
+    if (error) {
+      setSaving(false)
+      toast.show(t('menuColors.saveError'))
+      return
+    }
     await refresh()
     setSaving(false)
-    toast.show('Apariencia guardada')
+    toast.show(t('menuColors.saved'))
   }
 
   const pal = PALETTES.find((p) => p.id === selectedPalette) ?? PALETTES[0]
@@ -69,15 +83,17 @@ export default function MenuColorsScreen() {
         <Pressable onPress={() => router.back()} className="mr-4 w-9 h-9 rounded-full bg-borderSoft items-center justify-center" hitSlop={8}>
           <Text className="text-primary text-2xl leading-none" style={{ marginTop: -2 }}>‹</Text>
         </Pressable>
-        <Text className="text-xl font-bold text-primary flex-1">Apariencia del menú</Text>
+        <Text className="text-xl font-bold text-primary flex-1">{t('menuColors.title')}</Text>
         {saving && <ActivityIndicator size="small" color="#059669" />}
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 24 + insets.bottom, gap: 20 }}>
 
-        {/* Fuente */}
+        {/* Font */}
         <View>
-          <Text className="text-[11px] font-bold text-muted uppercase tracking-widest mb-3">Fuente del menú público</Text>
+          <Text className="text-[11px] font-bold text-muted uppercase tracking-widest mb-3">
+            {t('menuColors.fontSection')}
+          </Text>
           <View className="gap-3">
             {FONTS.map((f) => {
               const selected = selectedFont === f.id
@@ -94,10 +110,10 @@ export default function MenuColorsScreen() {
                   >
                     <View>
                       <Text className={`text-sm font-semibold ${selected ? 'text-accent' : 'text-muted'}`}>
-                        {f.label}
+                        {t(`menuColors.fonts.${f.id}`)}
                       </Text>
                       <Text style={[{ fontSize: 22, marginTop: 2, color: selected ? '#0D9488' : '#44403C' }, f.style]}>
-                        {f.sample}
+                        {t('dashboard.yourMenu')}
                       </Text>
                     </View>
                     {selected && (
@@ -114,9 +130,11 @@ export default function MenuColorsScreen() {
 
         {/* Color */}
         <View>
-          <Text className="text-[11px] font-bold text-muted uppercase tracking-widest mb-3">Color del menú público</Text>
+          <Text className="text-[11px] font-bold text-muted uppercase tracking-widest mb-3">
+            {t('menuColors.colorSection')}
+          </Text>
           <Text className="text-muted text-sm mb-4 leading-relaxed">
-            Elige el color principal que verán tus clientes al abrir el menú.
+            {t('menuColors.colorHint')}
           </Text>
           <View className="flex-row flex-wrap gap-3">
             {PALETTES.map((p) => {
@@ -139,7 +157,7 @@ export default function MenuColorsScreen() {
                     <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: p.color }} />
                   </View>
                   <Text style={{ fontSize: 11, fontWeight: selected ? '600' : '400', color: selected ? p.color : '#64748B' }}>
-                    {p.label}
+                    {t(`menuColors.palettes.${p.id}`)}
                   </Text>
                 </Pressable>
               )
@@ -147,20 +165,22 @@ export default function MenuColorsScreen() {
           </View>
         </View>
 
-        {/* Vista previa */}
+        {/* Preview */}
         <View>
-          <Text className="text-[11px] font-bold text-muted uppercase tracking-widest mb-3">Vista previa</Text>
+          <Text className="text-[11px] font-bold text-muted uppercase tracking-widest mb-3">
+            {t('menuColors.previewSection')}
+          </Text>
           <Card>
             <View style={{ backgroundColor: pal.bg, borderRadius: 12, padding: 16, marginBottom: 12 }}>
               <Text style={[{ fontWeight: '700', fontSize: 18, color: pal.color }, fnt.style]}>
-                {restaurant?.name ?? 'Mi Restaurante'}
+                {restaurant?.name ?? t('menuColors.previewRestaurantFallback')}
               </Text>
               <Text style={[{ color: pal.color, opacity: 0.7, fontSize: 13, marginTop: 4 }, fnt.style]}>
-                Carta digital • Tapas y bebidas
+                {t('menuColors.previewSubtitle')}
               </Text>
             </View>
             <View className="flex-row gap-2">
-              {['Entrantes', 'Bebidas', 'Postres'].map((cat) => (
+              {[t('categories.title'), t('products.title'), t('menuColors.previewCategoryDesserts')].map((cat) => (
                 <View key={cat} style={{ backgroundColor: pal.bg, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 }}>
                   <Text style={[{ color: pal.color, fontWeight: '600', fontSize: 12 }, fnt.style]}>{cat}</Text>
                 </View>
@@ -169,9 +189,8 @@ export default function MenuColorsScreen() {
           </Card>
         </View>
 
-        {/* Save button — only shown when there are changes */}
         {hasChanges && (
-          <Button label="Guardar cambios" onPress={handleSave} loading={saving} />
+          <Button label={t('menuColors.submit')} onPress={handleSave} loading={saving} />
         )}
 
       </ScrollView>

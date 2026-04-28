@@ -35,9 +35,3 @@ export type Product = {
   created_at: string
   updated_at: string
 }
-
-export type ProductAvailability = {
-  id: string
-  product_id: string
-  day_of_week: 0 | 1 | 2 | 3 | 4 | 5 | 6
-}

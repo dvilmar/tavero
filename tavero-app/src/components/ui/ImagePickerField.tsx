@@ -1,4 +1,5 @@
 import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { Svg, Path, Circle } from 'react-native-svg'
 
 type Props = {
@@ -20,6 +21,7 @@ function CameraIcon({ size = 28 }: { size?: number }) {
 }
 
 export function ImagePickerField({ label, imageUrl, onPress, uploading, aspectRatio = 4 / 3, circular }: Props) {
+  const { t } = useTranslation()
   const containerClass = circular
     ? 'w-28 h-28 rounded-full'
     : 'w-full rounded-xl'
@@ -43,13 +45,13 @@ export function ImagePickerField({ label, imageUrl, onPress, uploading, aspectRa
             )}
             {!uploading && (
               <View className="absolute bottom-1 right-1 bg-black/60 rounded-full px-2 py-0.5">
-                <Text className="text-white text-[10px] font-medium">Cambiar</Text>
+                <Text className="text-white text-[10px] font-medium">{t('common.change')}</Text>
               </View>
             )}
           </View>
         ) : (
           <View
-            className={`${containerClass} bg-white border-2 border-dashed border-border items-center justify-center`}
+            className={`${containerClass} bg-surface border-2 border-dashed border-border items-center justify-center`}
             style={circular ? undefined : { aspectRatio }}
           >
             {uploading

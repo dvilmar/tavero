@@ -14,7 +14,7 @@ export function Input({ label, error, className, ...props }: Props) {
       )}
       <TextInput
         placeholderTextColor="#9CA3AF"
-        className={`bg-white border rounded-xl px-4 py-3 text-base text-primary ${
+        className={`bg-surface border rounded-xl px-4 py-3 text-base text-primary ${
           error ? 'border-danger' : 'border-border'
         } ${className ?? ''}`}
         {...props}

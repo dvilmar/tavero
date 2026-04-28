@@ -35,15 +35,35 @@ const PALETTE: Record<string, { accent: string; accentSoft: string }> = {
   slate:    { accent: '71 85 105',   accentSoft: '241 245 249' },
 }
 
+const MADRID_WEEKDAY_TO_DAY: Record<string, number> = {
+  dom: 0,
+  lun: 1,
+  mar: 2,
+  mie: 3,
+  mié: 3,
+  jue: 4,
+  vie: 5,
+  sab: 6,
+  sáb: 6,
+}
+
+function getMadridDayOfWeek() {
+  const weekday = new Intl.DateTimeFormat('es-ES', {
+    weekday: 'short',
+    timeZone: 'Europe/Madrid',
+  }).format(new Date()).replace('.', '').toLowerCase()
+  return MADRID_WEEKDAY_TO_DAY[weekday] ?? new Date().getDay()
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('restaurants')
     .select('name, description, logo_url')
     .eq('slug', params.slug)
     .eq('is_active', true)
     .single()
 
-  if (!data) {
+  if (error || !data) {
     return {
       title: 'Menú no encontrado',
       robots: { index: false, follow: false },
@@ -73,16 +93,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function MenuPage({ params }: Props) {
-  const { data: restaurant } = await supabase
+  const { data: restaurant, error: restaurantError } = await supabase
     .from('restaurants')
     .select('id, name, slug, description, logo_url, menu_font, menu_accent_color')
     .eq('slug', params.slug)
     .eq('is_active', true)
     .single()
 
+  if (restaurantError) notFound()
   if (!restaurant) notFound()
 
-  const [{ data: rawCategories }, { data: rawProducts }] = await Promise.all([
+  const [{ data: rawCategories, error: categoriesError }, { data: rawProducts, error: productsError }] = await Promise.all([
     supabase
       .from('categories')
       .select('id, name, sort_order, restaurant_id, description')
@@ -96,11 +117,13 @@ export default async function MenuPage({ params }: Props) {
       .eq('is_active', true)
       .order('sort_order', { ascending: true }),
   ])
+  if (categoriesError) notFound()
+  if (productsError) notFound()
 
   const categories: Category[] = rawCategories ?? []
   const allProducts = rawProducts ?? []
 
-  const today = new Date().getDay()
+  const today = getMadridDayOfWeek()
 
   const availableProducts: Product[] = allProducts
     .filter((p) => {

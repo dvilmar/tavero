@@ -1,16 +1,12 @@
-import { ActivityIndicator, View } from 'react-native'
 import { Redirect } from 'expo-router'
 import { useAuth } from '@/context/AuthContext'
+import { FullScreenLoader } from '@/components/ui/FullScreenLoader'
 
 export default function Index() {
   const { session, loading } = useAuth()
 
   if (loading) {
-    return (
-      <View className="flex-1 bg-background items-center justify-center">
-        <ActivityIndicator size="large" color="#1A1A2E" />
-      </View>
-    )
+    return <FullScreenLoader />
   }
 
   if (!session) return <Redirect href="/(auth)/login" />

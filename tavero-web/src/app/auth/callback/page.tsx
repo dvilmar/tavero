@@ -22,6 +22,15 @@ function parseHash(hash: string) {
   }
 }
 
+function safeDecodeUrlValue(value: string | null): string {
+  if (!value) return ''
+  try {
+    return decodeURIComponent(value.replace(/\+/g, ' '))
+  } catch {
+    return value
+  }
+}
+
 function AuthCallback() {
   const searchParams = useSearchParams()
   const [status, setStatus]       = useState<Status>('loading')
@@ -40,7 +49,7 @@ function AuthCallback() {
 
     if (parsed.error) {
       const msg = parsed.error_description
-        ? decodeURIComponent(parsed.error_description.replace(/\+/g, ' '))
+        ? safeDecodeUrlValue(parsed.error_description)
         : 'El enlace no es válido.'
       setErrorMsg(
         parsed.error === 'access_denied' && msg.toLowerCase().includes('expired')
@@ -54,7 +63,8 @@ function AuthCallback() {
     // Also handle query-param errors (e.g. some redirect paths)
     const qError = searchParams.get('error')
     if (qError) {
-      setErrorMsg(searchParams.get('error_description') ?? 'El enlace no es válido.')
+      const rawError = searchParams.get('error_description')
+      setErrorMsg(rawError ? safeDecodeUrlValue(rawError) : 'El enlace no es válido.')
       setStatus('error')
       return
     }
@@ -78,6 +88,7 @@ function AuthCallback() {
   }, [searchParams])
 
   const handleReset = async () => {
+    if (saving) return
     setFieldError('')
     if (!password)               { setFieldError('Introduce una contraseña'); return }
     if (password.length < 6)     { setFieldError('Mínimo 6 caracteres'); return }
@@ -125,6 +136,7 @@ function AuthCallback() {
                   type="password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleReset()}
                   placeholder="••••••••"
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base outline-none focus:border-indigo-400"
                 />
@@ -135,6 +147,7 @@ function AuthCallback() {
                   type="password"
                   value={confirm}
                   onChange={e => setConfirm(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleReset()}
                   placeholder="••••••••"
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base outline-none focus:border-indigo-400"
                 />
