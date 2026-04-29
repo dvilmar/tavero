@@ -121,16 +121,11 @@ export default function DashboardScreen() {
           <QRCode value={menuUrl} size={170} backgroundColor="#FFFFFF" color="#000000" />
         </View>
         <Button label={t('dashboard.shareMenu')} onPress={handleShare} variant="accent" className="w-full mt-1" />
+        <Button label={t('dashboard.menuPreview')} onPress={() => router.push('/(app)/menu-preview')} variant="gray" className="w-full" />
       </Card>
 
       {/* Navigation */}
       <View className="gap-2.5 mb-5">
-        <NavCard
-          icon="👀"
-          label={t('dashboard.menuPreview')}
-          description={t('dashboard.menuPreviewDesc')}
-          onPress={() => router.push('/(app)/menu-preview')}
-        />
         <NavCard
           icon="🎨"
           label={t('dashboard.menuColors')}

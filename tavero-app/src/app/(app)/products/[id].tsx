@@ -327,11 +327,11 @@ export default function ProductEditScreen() {
                     style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                     className={`px-4 py-2.5 rounded-full border-2 ${
                       selected
-                        ? (isDark ? 'bg-zinc-200 border-zinc-200' : 'bg-accentSoft border-border')
+                        ? (isDark ? 'bg-zinc-200 border-zinc-200' : 'bg-zinc-900 border-zinc-900')
                         : 'bg-surface border-border'
                     }`}
                   >
-                    <Text className={`text-sm font-semibold ${selected ? 'text-zinc-900' : 'text-primary'}`}>
+                    <Text className={`text-sm font-semibold ${selected ? (isDark ? 'text-zinc-900' : 'text-white') : 'text-primary'}`}>
                       {selected ? '✓ ' : ''}{cat.name}
                     </Text>
                   </Pressable>
@@ -355,11 +355,11 @@ export default function ProductEditScreen() {
                   onPress={() => toggleDay(day.value)}
                   className={`items-center justify-center w-10 h-10 rounded-full border ${
                     active
-                      ? (isDark ? 'bg-zinc-200 border-zinc-200' : 'bg-accentSoft border-border')
+                      ? (isDark ? 'bg-zinc-200 border-zinc-200' : 'bg-zinc-900 border-zinc-900')
                       : 'bg-surface border-border'
                   }`}
                 >
-                  <Text className={`text-xs font-semibold ${active ? 'text-zinc-900' : 'text-muted'}`}>
+                  <Text className={`text-xs font-semibold ${active ? (isDark ? 'text-zinc-900' : 'text-white') : 'text-muted'}`}>
                     {t(`products.days.${day.key}`)}
                   </Text>
                 </Pressable>

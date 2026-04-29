@@ -1,11 +1,12 @@
 import '../../global.css'
 import { useEffect, useState } from 'react'
-import { View } from 'react-native'
+import { Platform, View } from 'react-native'
 import { Stack } from 'expo-router'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { I18nextProvider } from 'react-i18next'
 import { useColorScheme, vars } from 'nativewind'
+import * as NavigationBar from 'expo-navigation-bar'
 import { AuthProvider } from '@/context/AuthContext'
 import { RestaurantProvider } from '@/context/RestaurantContext'
 import { FullScreenLoader } from '@/components/ui/FullScreenLoader'
@@ -51,6 +52,11 @@ export default function RootLayout() {
         console.error('Error initializing i18n', err)
       })
       .finally(() => setI18nReady(true))
+
+    if (Platform.OS === 'android') {
+      NavigationBar.setVisibilityAsync('hidden')
+      NavigationBar.setBehaviorAsync('overlay-swipe')
+    }
   }, [])
 
   const activeThemeVars = colorScheme === 'dark' ? darkThemeVars : lightThemeVars

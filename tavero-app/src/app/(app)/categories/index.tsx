@@ -210,7 +210,7 @@ export default function CategoriesScreen() {
           onDragEnd={handleDragEnd}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          activationDistance={0}
+          activationDistance={10}
           autoscrollThreshold={28}
           autoscrollSpeed={120}
           dragItemOverflow
