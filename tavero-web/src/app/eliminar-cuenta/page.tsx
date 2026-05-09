@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
+import { CONTACT_EMAIL } from '@/lib/config'
 
 export const metadata: Metadata = {
   title: 'Eliminar cuenta · Tavero',
   description: 'Solicita la eliminación de tu cuenta y datos de Tavero.',
 }
 
-const CONTACT_EMAIL = 'dvm3manantial@gmail.com'
 const MAILTO = `mailto:${CONTACT_EMAIL}?subject=Solicitud%20de%20eliminaci%C3%B3n%20de%20cuenta&body=Hola%2C%0A%0ASolicito%20la%20eliminaci%C3%B3n%20de%20mi%20cuenta%20y%20todos%20los%20datos%20asociados.%0A%0ACorreo%20de%20la%20cuenta%3A%20`
 
 export default function EliminarCuentaPage() {

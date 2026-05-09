@@ -4,6 +4,7 @@ import { router } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { translateAuthError } from '@/lib/authErrors'
+import { createAuthSchema } from '@/lib/validation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PasswordInput } from '@/components/ui/PasswordInput'
@@ -16,13 +17,16 @@ export default function RegisterScreen() {
   const [error, setError]       = useState('')
   const [done, setDone]         = useState(false)
   const { t } = useTranslation()
+  const authSchema = createAuthSchema(t)
 
   const handleRegister = async () => {
     setError('')
-    if (!email.trim())          { setError(t('register.errors.emailRequired')); return }
-    if (!password)              { setError(t('register.errors.passwordRequired')); return }
-    if (password.length < 6)    { setError(t('register.errors.passwordTooShort')); return }
-    if (password !== confirm)   { setError(t('register.errors.passwordsMismatch')); return }
+    const result = authSchema.safeParse({ email: email.trim(), password })
+    if (!result.success) {
+      setError(result.error.flatten().fieldErrors.email?.[0] ?? result.error.flatten().fieldErrors.password?.[0])
+      return
+    }
+    if (password !== confirm) { setError(t('register.errors.passwordsMismatch')); return }
 
     setLoading(true)
     const { data, error } = await supabase.auth.signUp({ email: email.trim(), password })

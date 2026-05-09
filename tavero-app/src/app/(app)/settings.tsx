@@ -1,26 +1,26 @@
-import { Alert, Linking, Pressable, Switch, Text, View } from 'react-native'
-import { router } from 'expo-router'
-import { useColorScheme } from 'nativewind'
+import { Alert, Linking, Pressable, ScrollView, Switch, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
 import { haptic } from '@/lib/haptics'
 import { Card } from '@/components/ui/Card'
+import { Header } from '@/components/ui/Header'
 import { useAuth } from '@/context/AuthContext'
+import { useTheme } from '@/context/ThemeContext'
 import { saveLanguage, type SupportedLanguage } from '@/lib/i18n'
 
 export default function SettingsScreen() {
-  const { colorScheme, setColorScheme } = useColorScheme()
+  const { theme, setTheme } = useTheme()
   const { signOut } = useAuth()
-  const isDark = colorScheme === 'dark'
+  const isDark = theme === 'dark'
   const insets = useSafeAreaInsets()
   const { t, i18n } = useTranslation()
   const currentLang = (i18n.resolvedLanguage ?? i18n.language).slice(0, 2) as SupportedLanguage
   const deleteAccountUrl = process.env.EXPO_PUBLIC_ACCOUNT_DELETE_URL
     ?? `${(process.env.EXPO_PUBLIC_MENU_URL ?? 'https://tavero.app/menu').replace('/menu', '')}/delete-account`
 
-  const handleDarkToggle = (value: boolean) => {
+  const handleDarkToggle = async (value: boolean) => {
     haptic.select()
-    setColorScheme(value ? 'dark' : 'light')
+    await setTheme(value ? 'dark' : 'light')
   }
 
   const handleLanguage = async (lang: SupportedLanguage) => {
@@ -70,21 +70,9 @@ export default function SettingsScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      {/* Header */}
-      <View className="px-6 pt-14 pb-4 bg-surface border-b border-border flex-row items-center">
-        <Pressable
-          onPress={() => router.back()}
-          className="mr-4 w-9 h-9 rounded-full bg-borderSoft items-center justify-center"
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel={t('common.back')}
-        >
-          <Text className="text-primary text-2xl leading-none" style={{ marginTop: -2 }}>‹</Text>
-        </Pressable>
-        <Text className="text-xl font-bold text-primary flex-1">{t('settings.title')}</Text>
-      </View>
+      <Header title={t('settings.title')} backArrow />
 
-      <View style={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 24 + insets.bottom, gap: 20 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: insets.bottom, gap: 20 }}>
 
         {/* Appearance */}
         <View>
@@ -123,7 +111,7 @@ export default function SettingsScreen() {
                 }`}
               >
                 <Text className={`font-semibold text-sm ${
-                  currentLang === 'es' ? 'text-white' : 'text-primary'
+                  currentLang === 'es' ? (isDark ? 'text-white' : 'text-zinc-800') : 'text-primary'
                 }`}>
                   {t('settings.spanish')}
                 </Text>
@@ -137,7 +125,7 @@ export default function SettingsScreen() {
                 }`}
               >
                 <Text className={`font-semibold text-sm ${
-                  currentLang === 'en' ? 'text-white' : 'text-primary'
+                  currentLang === 'en' ? (isDark ? 'text-white' : 'text-zinc-800') : 'text-primary'
                 }`}>
                   {t('settings.english')}
                 </Text>
@@ -164,7 +152,7 @@ export default function SettingsScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={t('common.signOut')}
               >
-                <Text className={`text-sm font-semibold ${isDark ? 'text-zinc-50' : 'text-accent'}`}>{t('common.signOut')}</Text>
+                <Text className={`text-sm font-semibold ${isDark ? 'text-zinc-50' : 'text-zinc-700'}`}>{t('common.signOut')}</Text>
               </Pressable>
               <Pressable
                 onPress={handleDeleteAccount}
@@ -183,7 +171,7 @@ export default function SettingsScreen() {
           </Card>
         </View>
 
-      </View>
+      </ScrollView>
     </View>
   )
 }

@@ -2,12 +2,18 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
+import { createAuthSchema } from '@/lib/validation'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const tEs = (key: string) => ({
+  'validation.passwordMin': 'La contraseña debe tener al menos 8 caracteres',
+  'validation.passwordMax': 'La contraseña no puede exceder 128 caracteres',
+}[key] ?? key)
+
+const tEn = (key: string) => ({
+  'validation.passwordMin': 'Password must be at least 8 characters',
+  'validation.passwordMax': 'Password cannot exceed 128 characters',
+}[key] ?? key)
 
 type Status = 'loading' | 'confirmed' | 'reset' | 'reset_done' | 'error'
 
@@ -87,12 +93,19 @@ function AuthCallback() {
     setStatus('error')
   }, [searchParams])
 
+  const userLang = typeof navigator !== 'undefined' && navigator.language.startsWith('en') ? 'en' : 'es'
+  const t = userLang === 'en' ? tEn : tEs
+  const authSchema = createAuthSchema(t)
+
   const handleReset = async () => {
     if (saving) return
     setFieldError('')
-    if (!password)               { setFieldError('Introduce una contraseña'); return }
-    if (password.length < 6)     { setFieldError('Mínimo 6 caracteres'); return }
-    if (password !== confirm)    { setFieldError('Las contraseñas no coinciden'); return }
+    const result = authSchema.pick({ password: true }).safeParse({ password })
+    if (!result.success) {
+      setFieldError(result.error.flatten().fieldErrors.password?.[0] ?? 'Contraseña inválida')
+      return
+    }
+    if (password !== confirm) { setFieldError('Las contraseñas no coinciden'); return }
 
     setSaving(true)
     const { error } = await supabase.auth.updateUser({ password })

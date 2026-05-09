@@ -32,7 +32,7 @@ export function ThemeToggle() {
       aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
       className="w-9 h-9 rounded-full bg-surface border border-border flex items-center justify-center hover:scale-105 transition-transform"
     >
-      <span className="text-base">{theme === 'dark' ? '☀️' : '🌙'}</span>
+      <span className="text-base" aria-hidden="true">{theme === 'dark' ? '☀️' : '🌙'}</span>
     </button>
   )
 }

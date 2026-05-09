@@ -4,6 +4,7 @@ import { router } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { translateAuthError } from '@/lib/authErrors'
+import { createAuthSchema } from '@/lib/validation'
 import { Button } from '@/components/ui/Button'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 
@@ -14,12 +15,16 @@ export default function ResetPasswordScreen() {
   const [error, setError]       = useState('')
   const [done, setDone]         = useState(false)
   const { t } = useTranslation()
+  const authSchema = createAuthSchema(t)
 
   const handleReset = async () => {
     setError('')
-    if (!password || !confirm)  { setError(t('resetPassword.errors.fieldsRequired')); return }
-    if (password.length < 6)    { setError(t('resetPassword.errors.passwordTooShort')); return }
-    if (password !== confirm)   { setError(t('resetPassword.errors.passwordsMismatch')); return }
+    const result = authSchema.pick({ password: true }).safeParse({ password })
+    if (!result.success) {
+      setError(result.error.flatten().fieldErrors.password?.[0])
+      return
+    }
+    if (password !== confirm) { setError(t('resetPassword.errors.passwordsMismatch')); return }
 
     setLoading(true)
     const { error } = await supabase.auth.updateUser({ password })

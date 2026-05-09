@@ -3,8 +3,8 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } fro
 import { router } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
-import { checkEmailExists } from '@/lib/auth'
 import { translateAuthError } from '@/lib/authErrors'
+import { createAuthSchema } from '@/lib/validation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PasswordInput } from '@/components/ui/PasswordInput'
@@ -15,25 +15,17 @@ export default function LoginScreen() {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
   const { t } = useTranslation()
+  const authSchema = createAuthSchema(t)
 
   const handleLogin = async () => {
     setError('')
-    if (!email.trim()) { setError(t('login.errors.emailRequired')); return }
-    if (!password)     { setError(t('login.errors.passwordRequired')); return }
-
-    setLoading(true)
-
-    try {
-      const exists = await checkEmailExists(email.trim())
-      if (!exists) {
-        setError(t('login.errors.noAccount'))
-        setLoading(false)
-        return
-      }
-    } catch {
-      // ignore network failure on check
+    const result = authSchema.safeParse({ email: email.trim(), password })
+    if (!result.success) {
+      setError(result.error.flatten().fieldErrors.email?.[0] ?? result.error.flatten().fieldErrors.password?.[0])
+      return
     }
 
+    setLoading(true)
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
     setLoading(false)
     if (error) { setError(translateAuthError(error.message)); return }

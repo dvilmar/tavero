@@ -3,23 +3,23 @@
 @tailwind utilities;
 
 :root {
-  --color-primary:    28 25 23;     /* stone-900 */
-  --color-accent:     217 119 6;    /* amber-600 */
-  --color-accent-soft: 254 243 199; /* amber-100 */
-  --color-muted:      120 113 108;  /* stone-500 */
-  --color-border:     231 229 228;  /* stone-200 */
+  --color-primary:    28 25 23;
+  --color-accent:     17 24 39;
+  --color-accent-soft: 243 244 246;
+  --color-muted:      120 113 108;
+  --color-border:     231 229 228;
   --color-surface:    255 255 255;
-  --color-bg:         250 250 249;  /* stone-50 */
+  --color-bg:         250 250 249;
 }
 
 html.dark {
-  --color-primary:    250 250 249;  /* stone-50 (text) */
-  --color-accent:     245 158 11;   /* amber-500 (brighter for dark bg) */
-  --color-accent-soft: 69 26 3;     /* amber-950 */
-  --color-muted:      168 162 158;  /* stone-400 */
-  --color-border:     41 37 36;     /* stone-800 */
-  --color-surface:    28 25 23;     /* stone-900 */
-  --color-bg:         12 10 9;      /* stone-950 */
+  --color-primary:    250 250 249;
+  --color-accent:     245 158 11;
+  --color-accent-soft: 69 26 3;
+  --color-muted:      168 162 158;
+  --color-border:     41 37 36;
+  --color-surface:    28 25 23;
+  --color-bg:         12 10 9;
 }
 
 html, body {
@@ -27,9 +27,18 @@ html, body {
   color: rgb(var(--color-primary));
 }
 
+html { scroll-behavior: smooth; }
+
+/* Animations */
 @media (prefers-reduced-motion: no-preference) {
   .animate-fade-in {
     animation: fade-in 0.4s ease-out;
+  }
+  .animate-slide-up {
+    animation: slide-up 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .animate-fade-overlay {
+    animation: fade-overlay 0.3s ease-out;
   }
 }
 
@@ -38,5 +47,65 @@ html, body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Smooth scroll for category jump */
-html { scroll-behavior: smooth; }
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+@keyframes fade-overlay {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Scrollbar hide for category nav */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Bottom sheet backdrop */
+.backdrop-sheet {
+  background: rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+/* Search input focus ring */
+.search-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgb(var(--color-accent) / 0.3);
+}
+
+/* Label badge colors */
+.label-vegan       { background: #dcfce7; color: #166534; }
+.label-vegetarian  { background: #d1fae5; color: #065f46; }
+.label-spicy       { background: #fee2e2; color: #991b1b; }
+.label-gluten_free { background: #fef3c7; color: #92400e; }
+.label-dairy_free  { background: #e0e7ff; color: #3730a3; }
+.label-new         { background: #dbeafe; color: #1e40af; }
+.label-bestseller  { background: #fef08a; color: #854d0e; }
+.label-homemade    { background: #fce7f3; color: #9d174d; }
+.label-frozen      { background: #e0f2fe; color: #0369a1; }
+.label-on_request  { background: #f3e8ff; color: #7c3aed; }
+
+html.dark .label-vegan       { background: #052e16; color: #86efac; }
+html.dark .label-vegetarian  { background: #022c22; color: #6ee7b7; }
+html.dark .label-spicy       { background: #450a0a; color: #fca5a5; }
+html.dark .label-gluten_free { background: #451a03; color: #fcd34d; }
+html.dark .label-dairy_free  { background: #1e1b4b; color: #a5b4fc; }
+html.dark .label-new         { background: #172554; color: #93c5fd; }
+html.dark .label-bestseller  { background: #422006; color: #fde047; }
+html.dark .label-homemade    { background: #500724; color: #f9a8d4; }
+html.dark .label-frozen      { background: #0c4a6e; color: #7dd3fc; }
+html.dark .label-on_request  { background: #2e1065; color: #c4b5fd; }
+
+/* Text accent color utility */
+.text-accent {
+  color: rgb(var(--color-accent));
+}
+.bg-accentSoft {
+  background-color: rgb(var(--color-accent-soft));
+}

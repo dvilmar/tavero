@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { CONTACT_EMAIL } from '@/lib/config'
 
 export const metadata: Metadata = {
   title: 'Política de Privacidad · Tavero',
@@ -6,7 +7,6 @@ export const metadata: Metadata = {
 }
 
 const LAST_UPDATED = '28 de abril de 2026'
-const CONTACT_EMAIL = 'dvm3manantial@gmail.com'
 
 export default function PrivacidadPage() {
   return (

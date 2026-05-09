@@ -3,8 +3,9 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } fro
 import { router } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
-import { checkEmailExists, RESET_REDIRECT_URL } from '@/lib/auth'
+import { RESET_REDIRECT_URL } from '@/lib/auth'
 import { translateAuthError } from '@/lib/authErrors'
+import { createAuthSchema } from '@/lib/validation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
@@ -14,25 +15,17 @@ export default function ForgotPasswordScreen() {
   const [sent, setSent]       = useState(false)
   const [error, setError]     = useState('')
   const { t } = useTranslation()
+  const authSchema = createAuthSchema(t)
 
   const handleSend = async () => {
     setError('')
-    if (!email.trim())        { setError(t('forgotPassword.errors.emailRequired')); return }
-    if (!email.includes('@')) { setError(t('forgotPassword.errors.invalidEmail')); return }
-
-    setLoading(true)
-
-    try {
-      const exists = await checkEmailExists(email.trim())
-      if (!exists) {
-        setError(t('forgotPassword.errors.noAccount'))
-        setLoading(false)
-        return
-      }
-    } catch {
-      // Network check failed — proceed with sending anyway
+    const result = authSchema.pick({ email: true }).safeParse({ email: email.trim() })
+    if (!result.success) {
+      setError(result.error.flatten().fieldErrors.email?.[0])
+      return
     }
 
+    setLoading(true)
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: RESET_REDIRECT_URL,
     })

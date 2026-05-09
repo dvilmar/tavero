@@ -1,0 +1,24 @@
+# dependencias
+node_modules
+**/node_modules
+
+# builds
+dist
+build
+.next
+.expo
+out
+
+# git + cache
+.git
+.cache
+*.log
+
+# backend pesado
+tavero-backend/node_modules
+
+# web pesado
+tavero-web/node_modules
+
+# expo cache
+.expo

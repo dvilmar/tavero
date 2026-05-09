@@ -1,0 +1,11 @@
+# Certificates (never commit)
+certs/*.pem
+certs/*.key
+certs/*.crt
+
+# Nginx runtime
+logs/
+run/
+
+# Certbot data
+certbot/

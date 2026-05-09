@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase'
 
 const BUCKET = 'tavero-assets'
 
-type UploadTarget = 'products' | 'logos'
+type UploadTarget = 'products' | 'logos' | 'banners' | 'categories'
 
 export async function pickImage(target: UploadTarget): Promise<string | null> {
   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
@@ -12,7 +12,7 @@ export async function pickImage(target: UploadTarget): Promise<string | null> {
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'],
     allowsEditing: true,
-    aspect: target === 'logos' ? [1, 1] : [4, 3],
+    aspect: target === 'logos' ? [1, 1] : target === 'banners' ? [16, 9] : target === 'categories' ? [16, 6] : [4, 3],
     quality: 0.7,
   })
 
@@ -29,7 +29,7 @@ export async function uploadImage(
   try {
     const ext = uri.split('.').pop()?.split('?')[0] ?? 'jpg'
     const fileName = `${itemId}-${Date.now()}.${ext}`
-    const path = `${target}/${ownerId}/${fileName}`
+    const path = `${ownerId}/${target}/${fileName}`
 
     const arraybuffer = await fetch(uri).then((r) => r.arrayBuffer())
 

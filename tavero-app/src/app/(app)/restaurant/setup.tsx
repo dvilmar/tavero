@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native'
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
@@ -7,25 +7,19 @@ import { pickImage, uploadImage } from '@/lib/storage'
 import { useAuth } from '@/context/AuthContext'
 import { useRestaurant } from '@/context/RestaurantContext'
 import { Button } from '@/components/ui/Button'
+import { Header } from '@/components/ui/Header'
 import { Input } from '@/components/ui/Input'
 import { ImagePickerField } from '@/components/ui/ImagePickerField'
+import { slugify, sanitizeText } from '@/lib/utils'
+import { createRestaurantSchema } from '@/lib/validation'
 
 const MENU_BASE = process.env.EXPO_PUBLIC_MENU_URL ?? 'https://tavero.app/menu'
-
-function slugify(text: string) {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-}
 
 export default function RestaurantSetupScreen() {
   const { user } = useAuth()
   const { restaurant, refresh } = useRestaurant()
   const { t } = useTranslation()
+  const restaurantSchema = createRestaurantSchema(t)
 
   const [name, setName]               = useState(restaurant?.name ?? '')
   const [description, setDescription] = useState(restaurant?.description ?? '')
@@ -37,14 +31,20 @@ export default function RestaurantSetupScreen() {
   const [serverError, setServerError] = useState('')
 
   const isEditing = !!restaurant
-  const slug = isEditing ? (restaurant?.slug ?? '') : slugify(name)
+  const slug = slugify(name)
   const previewUrl = `${MENU_BASE}/${slug || '...'}`
 
   const validate = () => {
-    const e: typeof errors = {}
-    if (!name.trim()) e.name = t('setup.nameRequired')
-    setErrors(e)
-    return Object.keys(e).length === 0
+    const result = restaurantSchema.safeParse({ name, description })
+    if (!result.success) {
+      const e: typeof errors = {}
+      const fieldErrors = result.error.flatten().fieldErrors
+      if (fieldErrors.name) e.name = fieldErrors.name[0]
+      setErrors(e)
+      return false
+    }
+    setErrors({})
+    return true
   }
 
   const handlePickLogo = async () => {
@@ -62,11 +62,21 @@ export default function RestaurantSetupScreen() {
     setLoading(true)
 
     if (isEditing && restaurant) {
+      const finalSlug = slugify(name)
+      if (!finalSlug) {
+        setServerError(t('setup.slugInvalid'))
+        setLoading(false)
+        return
+      }
       const { error } = await supabase
         .from('restaurants')
-        .update({ name, description })
+        .update({ name, description, slug: finalSlug })
         .eq('id', restaurant.id)
-      if (error) { setServerError(error.message); setLoading(false); return }
+      if (error) {
+        setServerError(error.code === '23505' ? t('setup.slugConflict') : error.message)
+        setLoading(false)
+        return
+      }
 
       if (pendingLogoUri) {
         setUploading(true)
@@ -128,22 +138,11 @@ export default function RestaurantSetupScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1 bg-background"
     >
-      {/* Header */}
-      <View className="px-6 pt-14 pb-4 bg-surface border-b border-border flex-row items-center">
-        {isEditing && (
-          <Pressable onPress={() => router.back()} className="mr-4 w-9 h-9 rounded-full bg-borderSoft items-center justify-center" hitSlop={8}>
-            <Text className="text-primary text-2xl leading-none" style={{ marginTop: -2 }}>‹</Text>
-          </Pressable>
-        )}
-        <View className="flex-1">
-          <Text className="text-xl font-bold text-primary">
-            {isEditing ? t('setup.titleEdit') : t('setup.titleCreate')}
-          </Text>
-          <Text className="text-xs text-muted mt-0.5">
-            {isEditing ? t('setup.subtitleEdit') : t('setup.subtitleCreate')}
-          </Text>
-        </View>
-      </View>
+      <Header
+        title={isEditing ? t('setup.titleEdit') : t('setup.titleCreate')}
+        subtitle={isEditing ? t('setup.subtitleEdit') : t('setup.subtitleCreate')}
+        backArrow={isEditing}
+      />
 
       <ScrollView contentContainerClassName="px-6 py-6 gap-5">
         {/* Logo */}
@@ -161,7 +160,7 @@ export default function RestaurantSetupScreen() {
         <Input
           label={t('setup.nameLabel')}
           value={name}
-          onChangeText={setName}
+          onChangeText={(v) => setName(sanitizeText(v, 80))}
           placeholder={t('setup.namePlaceholder')}
           error={errors.name}
         />
@@ -179,7 +178,7 @@ export default function RestaurantSetupScreen() {
         <Input
           label={t('setup.descLabel')}
           value={description}
-          onChangeText={setDescription}
+          onChangeText={(v) => setDescription(sanitizeText(v, 300))}
           placeholder={t('setup.descPlaceholder')}
           multiline
           numberOfLines={3}
