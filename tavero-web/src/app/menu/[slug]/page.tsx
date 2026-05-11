@@ -283,7 +283,20 @@ export default async function MenuPage({ params, searchParams }: Props) {
   const font = restaurant.menu_font ?? 'inter'
   const fontUrl = FONT_URL[font] ?? FONT_URL.inter
   const fontFamily = FONT_FAMILY[font] ?? FONT_FAMILY.inter
-  const palette = PALETTE[restaurant.menu_accent_color ?? 'black'] ?? PALETTE.black
+  const rawColor = restaurant.menu_accent_color ?? 'black'
+  const palette = (() => {
+    if (rawColor.startsWith('#')) {
+      const h = rawColor.replace('#', '')
+      const r = parseInt(h.slice(0, 2), 16) || 0
+      const g = parseInt(h.slice(2, 4), 16) || 0
+      const b = parseInt(h.slice(4, 6), 16) || 0
+      const rs = Math.round(r + (255 - r) * 0.85)
+      const gs = Math.round(g + (255 - g) * 0.85)
+      const bs = Math.round(b + (255 - b) * 0.85)
+      return { accent: `${r} ${g} ${b}`, accentSoft: `${rs} ${gs} ${bs}` }
+    }
+    return PALETTE[rawColor as keyof typeof PALETTE] ?? PALETTE.black
+  })()
 
   const restaurantData = {
     id: restaurant.id,

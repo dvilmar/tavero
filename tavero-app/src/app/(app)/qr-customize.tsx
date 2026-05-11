@@ -1,29 +1,35 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { ScrollView, Text, View, Pressable, TextInput } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useColorScheme } from 'nativewind'
 import { captureRef } from 'react-native-view-shot'
 import * as Sharing from 'expo-sharing'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import QRCode from 'react-native-qrcode-svg'
+import { Ionicons } from '@expo/vector-icons'
 import { useRestaurant } from '@/context/RestaurantContext'
 import { Header } from '@/components/ui/Header'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Toast } from '@/components/ui/Toast'
 import { useToast } from '@/hooks/useToast'
+import { haptic } from '@/lib/haptics'
+import { ColorPickerModal } from '@/components/ui/ColorPickerModal'
 
 const MENU_BASE_URL = process.env.EXPO_PUBLIC_MENU_URL ?? 'https://tavero.app/menu'
+const STORAGE_KEY = 'qr_prefs_v2'
 
-const QR_COLORS = [
-  { id: 'black', fg: '#000000', bg: '#FFFFFF', label: 'Negro' },
-  { id: 'navy', fg: '#1E3A5F', bg: '#FFFFFF', label: 'Navy' },
-  { id: 'wine', fg: '#7E2D4D', bg: '#FFFFFF', label: 'Vino' },
-  { id: 'forest', fg: '#1B5E20', bg: '#FFFFFF', label: 'Bosque' },
-  { id: 'purple', fg: '#6A1B9A', bg: '#FFFFFF', label: 'Púrpura' },
-  { id: 'dark', fg: '#FAFAFA', bg: '#1C1917', label: 'Oscuro' },
-] as const
+type QrPrefs = { fg: string; bg: string; showFrame: boolean; frameText: string }
 
-type ColorId = typeof QR_COLORS[number]['id']
+function toHex6(color: string): string {
+  if (color.startsWith('#')) return color.slice(0, 7)
+  const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/)
+  if (match) {
+    const h = (n: string) => parseInt(n).toString(16).padStart(2, '0')
+    return `#${h(match[1])}${h(match[2])}${h(match[3])}`
+  }
+  return color
+}
 
 export default function QrCustomizeScreen() {
   const { restaurant } = useRestaurant()
@@ -33,13 +39,40 @@ export default function QrCustomizeScreen() {
   const toast = useToast()
   const qrRef = useRef<View>(null)
 
-  const [selectedColor, setSelectedColor] = useState<ColorId>('black')
+  const [fgColor, setFgColor] = useState('#000000')
+  const [bgColor, setBgColor] = useState('#FFFFFF')
   const [frameText, setFrameText] = useState(restaurant?.name ?? t('qr.defaultFrame'))
   const [showFrame, setShowFrame] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [sharing, setSharing] = useState(false)
+  const [pickerTarget, setPickerTarget] = useState<'fg' | 'bg' | null>(null)
 
   const menuUrl = restaurant ? `${MENU_BASE_URL}/${restaurant.slug}` : ''
-  const colorConfig = QR_COLORS.find((c) => c.id === selectedColor) ?? QR_COLORS[0]
+  const fgHex = toHex6(fgColor)
+  const bgHex = toHex6(bgColor)
+
+  useEffect(() => {
+    AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
+      if (!raw) return
+      try {
+        const prefs: QrPrefs = JSON.parse(raw)
+        if (prefs.fg) setFgColor(prefs.fg)
+        if (prefs.bg) setBgColor(prefs.bg)
+        if (typeof prefs.showFrame === 'boolean') setShowFrame(prefs.showFrame)
+        if (prefs.frameText) setFrameText(prefs.frameText)
+      } catch {}
+    })
+  }, [])
+
+  const handleSave = useCallback(async () => {
+    setSaving(true)
+    haptic.select()
+    const prefs: QrPrefs = { fg: fgHex, bg: bgHex, showFrame, frameText }
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(prefs))
+    setSaving(false)
+    haptic.success()
+    toast.show(t('qr.saved'))
+  }, [fgHex, bgHex, showFrame, frameText, t, toast])
 
   const handleShare = useCallback(async () => {
     if (!qrRef.current) return
@@ -53,47 +86,47 @@ export default function QrCustomizeScreen() {
     setSharing(false)
   }, [t])
 
+  const handlePickerConfirm = useCallback((color: string) => {
+    if (pickerTarget === 'fg') setFgColor(toHex6(color))
+    else if (pickerTarget === 'bg') setBgColor(toHex6(color))
+    setPickerTarget(null)
+    haptic.select()
+  }, [pickerTarget])
+
   return (
     <View className="flex-1 bg-background">
-      <Header title={t('qr.title')} subtitle={t('qr.subtitle')} />
+      <Header
+        title={t('qr.title')}
+        subtitle={t('qr.subtitle')}
+        action={
+          <Pressable onPress={handleShare} disabled={sharing} hitSlop={8} style={{ opacity: sharing ? 0.5 : 1 }}>
+            <Ionicons name="share-outline" size={22} color={isDark ? '#E5E7EB' : '#374151'} />
+          </Pressable>
+        }
+      />
 
       <ScrollView contentContainerClassName="px-6 py-6 gap-5">
         {/* QR Preview */}
         <Card className="items-center py-8">
           <View ref={qrRef} collapsable={false} className="items-center">
             {showFrame && (
-              <View
-                className="rounded-t-2xl px-6 py-3 mb-0"
-                style={{ backgroundColor: colorConfig.fg }}
-              >
-                <Text
-                  className="text-sm font-bold text-center"
-                  style={{ color: colorConfig.bg }}
-                >
+              <View className="rounded-t-2xl px-6 py-3" style={{ backgroundColor: fgHex }}>
+                <Text className="text-sm font-bold text-center" style={{ color: bgHex }}>
                   {frameText || restaurant?.name}
                 </Text>
               </View>
             )}
-            <View
-              className={`p-5 ${showFrame ? 'rounded-b-2xl' : 'rounded-2xl'}`}
-              style={{ backgroundColor: colorConfig.bg }}
-            >
+            <View className={`p-5 ${showFrame ? 'rounded-b-2xl' : 'rounded-2xl'}`} style={{ backgroundColor: bgHex }}>
               <QRCode
                 value={menuUrl || 'https://tavero.app'}
                 size={200}
-                backgroundColor={colorConfig.bg}
-                color={colorConfig.fg}
+                backgroundColor={bgHex}
+                color={fgHex}
               />
             </View>
             {showFrame && (
-              <View
-                className="rounded-b-2xl px-6 py-2 mt-0"
-                style={{ backgroundColor: colorConfig.fg }}
-              >
-                <Text
-                  className="text-[10px] text-center font-medium"
-                  style={{ color: colorConfig.bg, opacity: 0.7 }}
-                >
+              <View className="rounded-b-2xl px-6 py-2" style={{ backgroundColor: fgHex }}>
+                <Text className="text-[10px] text-center font-medium" style={{ color: bgHex, opacity: 0.7 }}>
                   {menuUrl}
                 </Text>
               </View>
@@ -101,40 +134,36 @@ export default function QrCustomizeScreen() {
           </View>
         </Card>
 
-        {/* Color selector */}
+        {/* Color pickers */}
         <Card>
-          <Text className="text-sm font-semibold text-primary mb-3">{t('qr.colorSection')}</Text>
-          <View className="flex-row flex-wrap gap-3">
-            {QR_COLORS.map((color) => {
-              const isActive = selectedColor === color.id
-              return (
-                <Pressable
-                  key={color.id}
-                  onPress={() => setSelectedColor(color.id)}
-                  className={`items-center gap-1.5 px-3 py-2 rounded-xl border-2 ${
-                    isActive ? 'border-accent' : 'border-transparent'
-                  }`}
-                >
-                  <View className="flex-row">
-                    <View
-                      className="w-6 h-6 rounded-l-lg"
-                      style={{ backgroundColor: color.fg }}
-                    />
-                    <View
-                      className="w-6 h-6 rounded-r-lg border border-border"
-                      style={{ backgroundColor: color.bg }}
-                    />
-                  </View>
-                  <Text className={`text-[10px] font-semibold ${isActive ? 'text-accent' : 'text-muted'}`}>
-                    {color.label}
-                  </Text>
-                </Pressable>
-              )
-            })}
+          <Text className="text-sm font-semibold text-primary mb-4">{t('qr.colorsSection')}</Text>
+          <View className="gap-3">
+            {([
+              { key: 'fg' as const, label: t('qr.colorFg'), color: fgHex },
+              { key: 'bg' as const, label: t('qr.colorBg'), color: bgHex },
+            ]).map(({ key, label, color }) => (
+              <Pressable
+                key={key}
+                onPress={() => setPickerTarget(key)}
+                style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
+                className={`flex-row items-center gap-4 px-4 py-3 rounded-xl border ${isDark ? 'bg-surface border-border' : 'bg-zinc-50 border-zinc-200'}`}
+              >
+                <View style={{
+                  width: 40, height: 40, borderRadius: 20,
+                  backgroundColor: color,
+                  borderWidth: 2, borderColor: isDark ? '#3F3F46' : '#D4D4D8',
+                }} />
+                <View className="flex-1">
+                  <Text className="text-sm font-semibold text-primary">{label}</Text>
+                  <Text className="text-xs text-muted mt-0.5">{color.toUpperCase()}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={isDark ? '#6B7280' : '#9CA3AF'} />
+              </Pressable>
+            ))}
           </View>
         </Card>
 
-        {/* Frame options */}
+        {/* Frame */}
         <Card>
           <View className="flex-row items-center justify-between mb-3">
             <Text className="text-sm font-semibold text-primary">{t('qr.frameSection')}</Text>
@@ -156,14 +185,20 @@ export default function QrCustomizeScreen() {
           )}
         </Card>
 
-        {/* Actions */}
-        <Button
-          label={t('qr.share')}
-          onPress={handleShare}
-          loading={sharing}
-        />
+        <Button label={t('qr.save')} onPress={handleSave} loading={saving} />
       </ScrollView>
+
       <Toast message={toast.message} visible={toast.visible} />
+
+      <ColorPickerModal
+        visible={pickerTarget !== null}
+        value={pickerTarget === 'bg' ? bgColor : fgColor}
+        title={pickerTarget === 'bg' ? t('qr.colorBg') : t('qr.colorFg')}
+        onClose={() => setPickerTarget(null)}
+        onConfirm={handlePickerConfirm}
+        isDark={isDark}
+        showAlpha={false}
+      />
     </View>
   )
 }

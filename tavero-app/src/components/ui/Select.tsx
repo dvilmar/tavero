@@ -1,5 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Pressable, ScrollView, Text, View, Modal, TouchableWithoutFeedback } from 'react-native'
+import { useCallback, useState } from 'react'
+import { Modal, Pressable, ScrollView, Text, TouchableWithoutFeedback, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
+import { haptic } from '@/lib/haptics'
+import { useTheme } from '@/context/ThemeContext'
 
 type Option = {
   label: string
@@ -16,34 +19,31 @@ type Props = {
 
 export function Select({ options, value, onChange, placeholder }: Props) {
   const [open, setOpen] = useState(false)
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
 
   const selected = options.find((o) => o.value === value)
 
   const handleSelect = useCallback(
     (option: Option) => {
+      haptic.select()
       onChange(option.value)
       setOpen(false)
     },
     [onChange]
   )
 
-  useEffect(() => {
-    if (open) {
-      const selectedOption = options.find((o) => o.value === value)
-      // Scroll to selected option after modal opens
-    }
-  }, [open])
-
   return (
     <>
       <Pressable
-        onPress={() => setOpen(true)}
+        onPress={() => { haptic.light(); setOpen(true) }}
         className="flex-row items-center justify-between px-4 py-3.5 rounded-2xl border-2 bg-surface border-border"
+        style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
       >
-        <Text className="text-base text-primary" style={selected?.style}>
+        <Text className="text-base text-primary flex-1" style={selected?.style}>
           {selected?.label ?? placeholder ?? ''}
         </Text>
-        <Text className="text-muted text-lg ml-2">▾</Text>
+        <Ionicons name="chevron-down" size={18} color={isDark ? '#9CA3AF' : '#6B7280'} />
       </Pressable>
 
       <Modal visible={open} transparent animationType="fade">
@@ -63,7 +63,7 @@ export function Select({ options, value, onChange, placeholder }: Props) {
                       <Pressable
                         key={option.value}
                         onPress={() => handleSelect(option)}
-                        className="flex-row items-center justify-between py-4 px-3 rounded-xl"
+                        className={`flex-row items-center justify-between py-4 px-3 rounded-xl ${isSelected ? 'bg-accentSoft' : ''}`}
                         style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                       >
                         <Text
@@ -73,7 +73,7 @@ export function Select({ options, value, onChange, placeholder }: Props) {
                           {option.label}
                         </Text>
                         {isSelected && (
-                          <Text className="text-accent text-lg ml-3">✓</Text>
+                          <Ionicons name="checkmark" size={20} color={isDark ? '#F9FAFB' : '#111827'} />
                         )}
                       </Pressable>
                     )

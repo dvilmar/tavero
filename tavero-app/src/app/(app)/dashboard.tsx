@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, Share, Text, View } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useColorScheme } from 'nativewind'
@@ -62,10 +62,8 @@ export default function DashboardScreen() {
     })
   }, [restaurant])
 
-  useFocusEffect(useCallback(() => {
-    refresh()
-    loadQuickStats()
-  }, [refresh, loadQuickStats]))
+  useFocusEffect(useCallback(() => { refresh() }, [refresh]))
+  useEffect(() => { loadQuickStats() }, [loadQuickStats])
 
   if (loading) {
     return (
@@ -120,7 +118,7 @@ export default function DashboardScreen() {
       {/* Header */}
       <View className="flex-row items-center mb-7 px-4 py-3 rounded-2xl bg-accentSoft border border-border">
         <Pressable
-          onPress={() => router.push('/(app)/restaurant/setup')}
+          onPress={() => router.push('/(app)/restaurant/info')}
           className="flex-row items-center flex-1"
           style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
         >
@@ -161,22 +159,33 @@ export default function DashboardScreen() {
       </Card>
 
       {/* Quick stats */}
-      {quickStats && (
-        <View className="flex-row gap-3 mb-5">
-          <Card className="flex-1 items-center py-4">
-            <Text className="text-2xl font-bold text-primary">{quickStats.products}</Text>
-            <Text className="text-[11px] text-muted mt-0.5 text-center">{t('dashboard.statProducts')}</Text>
-          </Card>
-          <Card className="flex-1 items-center py-4">
-            <Text className="text-2xl font-bold text-primary">{quickStats.categories}</Text>
-            <Text className="text-[11px] text-muted mt-0.5 text-center">{t('dashboard.statCategories')}</Text>
-          </Card>
-          <Card className="flex-1 items-center py-4">
-            <Text className="text-2xl font-bold text-accent">{quickStats.todayVisits}</Text>
-            <Text className="text-[11px] text-muted mt-0.5 text-center">{t('dashboard.statToday')}</Text>
-          </Card>
-        </View>
-      )}
+      <View className="flex-row gap-3 mb-5">
+        {quickStats ? (
+          <>
+            <Card className="flex-1 items-center py-4">
+              <Text className="text-2xl font-bold text-primary">{quickStats.products}</Text>
+              <Text className="text-[11px] text-muted mt-0.5 text-center">{t('dashboard.statProducts')}</Text>
+            </Card>
+            <Card className="flex-1 items-center py-4">
+              <Text className="text-2xl font-bold text-primary">{quickStats.categories}</Text>
+              <Text className="text-[11px] text-muted mt-0.5 text-center">{t('dashboard.statCategories')}</Text>
+            </Card>
+            <Card className="flex-1 items-center py-4">
+              <Text className="text-2xl font-bold text-accent">{quickStats.todayVisits}</Text>
+              <Text className="text-[11px] text-muted mt-0.5 text-center">{t('dashboard.statToday')}</Text>
+            </Card>
+          </>
+        ) : (
+          <>
+            {[0, 1, 2].map((i) => (
+              <Card key={i} className="flex-1 items-center py-4">
+                <View className="h-7 w-10 rounded-lg bg-border mb-1.5" />
+                <View className="h-2.5 w-14 rounded-full bg-border" />
+              </Card>
+            ))}
+          </>
+        )}
+      </View>
 
       {/* Navigation */}
       <View className="gap-2.5">
@@ -199,23 +208,12 @@ export default function DashboardScreen() {
           onPress={() => router.push('/(app)/products')}
         />
         <NavCard
-          icon="📋"
-          label={t('dashboard.menus')}
-          description={t('dashboard.menusDesc')}
-          onPress={() => router.push('/(app)/menus')}
-        />
-        <NavCard
           icon="📢"
           label={t('dashboard.banners')}
           description={t('dashboard.bannersDesc')}
           onPress={() => router.push('/(app)/banners')}
         />
-        <NavCard
-          icon="📍"
-          label={t('dashboard.restaurantInfo')}
-          description={t('dashboard.restaurantInfoDesc')}
-          onPress={() => router.push('/(app)/restaurant/info')}
-        />
+
         <NavCard
           icon="🎨"
           label={t('dashboard.qrCustomize')}

@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
+import { useCallback, useState } from 'react'
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
 import { useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useColorScheme } from 'nativewind'
 import { supabase } from '@/lib/supabase'
 import { useRestaurant } from '@/context/RestaurantContext'
+import { haptic } from '@/lib/haptics'
 import { Header } from '@/components/ui/Header'
 import { Card } from '@/components/ui/Card'
 import { DESIGN_TOKENS } from '@/lib/designTokens'
@@ -39,7 +40,6 @@ export default function StatsScreen() {
   }, [restaurant, period])
 
   useFocusEffect(useCallback(() => { loadStats() }, [loadStats]))
-  useEffect(() => { loadStats() }, [loadStats])
 
   const totalVisits = stats.reduce((sum, s) => sum + s.visits, 0)
   const prevTotal = prevStats.reduce((sum, s) => sum + s.visits, 0)
@@ -62,18 +62,19 @@ export default function StatsScreen() {
         {/* Period selector */}
         <View className="flex-row gap-2">
           {([7, 30] as const).map((p) => (
-            <View key={p} className="flex-1">
-              <Text
-                onPress={() => setPeriod(p)}
-                className={`text-center py-2.5 rounded-xl text-sm font-semibold ${
-                  period === p
-                    ? 'bg-accent text-white'
-                    : 'bg-surface border border-border text-primary'
-                }`}
-              >
+            <Pressable
+              key={p}
+              onPress={() => { setPeriod(p); haptic.select() }}
+              className={`flex-1 py-2.5 rounded-xl items-center ${
+                period === p
+                  ? 'bg-accent'
+                  : 'bg-surface border border-border'
+              }`}
+            >
+              <Text className={`text-sm font-semibold ${period === p ? 'text-white' : 'text-primary'}`}>
                 {p === 7 ? t('stats.last7') : t('stats.last30')}
               </Text>
-            </View>
+            </Pressable>
           ))}
         </View>
 
@@ -105,17 +106,6 @@ export default function StatsScreen() {
                 <Text className="text-xs text-muted mt-1">{t('stats.avgPerDay')}</Text>
               </Card>
             </View>
-
-            {trendPct !== null && (
-              <View className={`flex-row items-center gap-2 px-4 py-3 rounded-xl border ${trendUp ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                <Text className={`text-sm font-semibold ${trendUp ? 'text-green-700' : 'text-red-700'}`}>
-                  {trendUp ? '▲' : '▼'} {Math.abs(trendPct)}%
-                </Text>
-                <Text className={`text-xs flex-1 ${trendUp ? 'text-green-600' : 'text-red-600'}`}>
-                  {t('stats.vsLastPeriod', { visits: prevTotal })}
-                </Text>
-              </View>
-            )}
 
             {/* Bar chart */}
             <Card>

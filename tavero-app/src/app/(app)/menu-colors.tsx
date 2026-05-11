@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Image, Pressable, ScrollView, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
@@ -6,39 +6,16 @@ import { pickImage, uploadImage } from '@/lib/storage'
 import { haptic } from '@/lib/haptics'
 import { Header } from '@/components/ui/Header'
 import { Select } from '@/components/ui/Select'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
+import { Toast } from '@/components/ui/Toast'
+import { useToast } from '@/hooks/useToast'
+import { ColorPickerModal } from '@/components/ui/ColorPickerModal'
 import { useRestaurant } from '@/context/RestaurantContext'
 import { useTheme } from '@/context/ThemeContext'
 import { supabase } from '@/lib/supabase'
 
-type PaletteId =
-  | 'black'
-  | 'wine'
-  | 'sage'
-  | 'plum'
-  | 'red'
-  | 'orange'
-  | 'brown'
-  | 'teal'
-  | 'azure'
-  | 'pink'
-  | 'gold'
-  | 'terracotta'
 type FontId = 'inter' | 'montserrat' | 'playfair' | 'lato'
-
-const PALETTES: { id: PaletteId; color: string; bg: string }[] = [
-  { id: 'black',      color: '#111827', bg: '#F3F4F6' },
-  { id: 'wine',       color: '#7E2D4D', bg: '#FCE4EC' },
-  { id: 'sage',       color: '#6B8E6B', bg: '#E8F0E8' },
-  { id: 'plum',       color: '#7C3AED', bg: '#EDE9FE' },
-  { id: 'red',        color: '#DC2626', bg: '#FEE2E2' },
-  { id: 'orange',     color: '#EA580C', bg: '#FFF7ED' },
-  { id: 'brown',      color: '#78350F', bg: '#FEF3C7' },
-  { id: 'teal',       color: '#0D9488', bg: '#CCFBF1' },
-  { id: 'azure',      color: '#7DB9E8', bg: '#D6ECFA' },
-  { id: 'pink',       color: '#F4A6B6', bg: '#FDE2E8' },
-  { id: 'gold',       color: '#D4A017', bg: '#FFF8E1' },
-  { id: 'terracotta', color: '#C2410C', bg: '#FED7AA' },
-]
 
 const FONTS: { id: FontId; style: { fontFamily: string } }[] = [
   { id: 'inter',      style: { fontFamily: 'Inter' } },
@@ -47,94 +24,87 @@ const FONTS: { id: FontId; style: { fontFamily: string } }[] = [
   { id: 'lato',       style: { fontFamily: 'Lato' } },
 ]
 
+const LEGACY_PALETTE: Record<string, string> = {
+  black: '#111827', wine: '#7E2D4D', sage: '#6B8E6B', plum: '#7C3AED',
+  red: '#DC2626', orange: '#EA580C', brown: '#78350F', teal: '#0D9488',
+  azure: '#7DB9E8', pink: '#F4A6B6', gold: '#D4A017', terracotta: '#C2410C',
+}
+
+function parseAccentColor(raw: string | null | undefined): string {
+  if (!raw) return '#111827'
+  if (raw.startsWith('#') || raw.startsWith('rgb')) return raw
+  return LEGACY_PALETTE[raw] ?? '#111827'
+}
+
+// Converts any color string (hex or rgba(...)) to a plain hex6 for DB storage
+function toHex6(color: string): string {
+  if (color.startsWith('#')) return color.slice(0, 7)
+  const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/)
+  if (match) {
+    const h = (n: string) => parseInt(n).toString(16).padStart(2, '0')
+    return `#${h(match[1])}${h(match[2])}${h(match[3])}`
+  }
+  return '#111827'
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const h = hex.replace('#', '')
+  return {
+    r: parseInt(h.slice(0, 2), 16) || 0,
+    g: parseInt(h.slice(2, 4), 16) || 0,
+    b: parseInt(h.slice(4, 6), 16) || 0,
+  }
+}
+
 export default function MenuColorsScreen() {
   const { restaurant, refresh } = useRestaurant()
   const { theme } = useTheme()
   const isDark = theme === 'dark'
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
+  const toast = useToast()
 
-  const [selectedPalette, setSelectedPalette] = useState<PaletteId>(
-    (restaurant?.menu_accent_color as PaletteId) ?? 'black'
-  )
-  const [selectedFont, setSelectedFont] = useState<FontId>(
-    (restaurant?.menu_font as FontId) ?? 'inter'
-  )
+  const [accentColor, setAccentColor] = useState(() => parseAccentColor(restaurant?.menu_accent_color))
+  const [selectedFont, setSelectedFont] = useState<FontId>((restaurant?.menu_font as FontId) ?? 'inter')
   const [bannerUrl, setBannerUrl] = useState<string | null>(restaurant?.menu_banner_url ?? null)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const savingRef = useRef(false)
-  const pendingRef = useRef<{ palette?: PaletteId; font?: FontId } | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
+
+  const MENU_BASE_URL = process.env.EXPO_PUBLIC_MENU_URL ?? 'https://tavero.app/menu'
 
   useEffect(() => {
     if (restaurant) {
-      setSelectedPalette((restaurant.menu_accent_color as PaletteId) ?? 'black')
+      setAccentColor(parseAccentColor(restaurant.menu_accent_color))
       setSelectedFont((restaurant.menu_font as FontId) ?? 'inter')
     }
   }, [restaurant?.id])
 
-  const MENU_BASE_URL = process.env.EXPO_PUBLIC_MENU_URL ?? 'https://tavero.app/menu'
-
-  const saveToDb = useCallback(async (palette: PaletteId, font: FontId) => {
-    if (!restaurant || savingRef.current) return
-    savingRef.current = true
+  const handleSave = useCallback(async () => {
+    if (!restaurant) return
     setSaving(true)
+    haptic.select()
+    const hexColor = toHex6(accentColor)
     const { error } = await supabase
       .from('restaurants')
-      .update({ menu_accent_color: palette, menu_font: font })
+      .update({ menu_accent_color: hexColor, menu_font: selectedFont })
       .eq('id', restaurant.id)
-    savingRef.current = false
+    if (!error) {
+      await refresh()
+      try {
+        const baseUrl = MENU_BASE_URL.replace(/\/menu.*$/, '')
+        const secret = process.env.EXPO_PUBLIC_REVALIDATE_SECRET
+        await fetch(`${baseUrl}/api/revalidate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(secret ? { Authorization: `Bearer ${secret}` } : {}) },
+          body: JSON.stringify({ slug: restaurant.slug }),
+        })
+      } catch {}
+      haptic.success()
+      toast.show(t('menuColors.saved'))
+    }
     setSaving(false)
-    if (error) {
-      console.error('Error saving menu colors:', error.message)
-      return
-    }
-    await refresh()
-
-    // Invalidate web cache for this menu
-    try {
-      const baseUrl = MENU_BASE_URL.replace(/\/menu.*$/, '')
-      const secret = process.env.EXPO_PUBLIC_REVALIDATE_SECRET
-      await fetch(`${baseUrl}/api/revalidate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(secret ? { Authorization: `Bearer ${secret}` } : {}),
-        },
-        body: JSON.stringify({ slug: restaurant.slug }),
-      })
-    } catch (err) {
-      console.warn('Failed to revalidate web menu:', err)
-    }
-
-    if (pendingRef.current) {
-      const { palette: p, font: f } = pendingRef.current
-      pendingRef.current = null
-      if (p || f) {
-        saveToDb(p ?? palette, f ?? font)
-      }
-    }
-  }, [restaurant, refresh])
-
-  const handlePaletteChange = (id: PaletteId) => {
-    haptic.select()
-    setSelectedPalette(id)
-    if (savingRef.current) {
-      pendingRef.current = { ...pendingRef.current, palette: id }
-    } else {
-      saveToDb(id, selectedFont)
-    }
-  }
-
-  const handleFontChange = (id: FontId) => {
-    haptic.select()
-    setSelectedFont(id)
-    if (savingRef.current) {
-      pendingRef.current = { ...pendingRef.current, font: id }
-    } else {
-      saveToDb(selectedPalette, id)
-    }
-  }
+  }, [restaurant, accentColor, selectedFont, refresh, MENU_BASE_URL, t, toast])
 
   const handleBannerPick = async () => {
     const uri = await pickImage('banners')
@@ -158,70 +128,57 @@ export default function MenuColorsScreen() {
     haptic.light()
   }
 
-  const pal = PALETTES.find((p) => p.id === selectedPalette) ?? PALETTES[0]
+  const accentHex = toHex6(accentColor)
+  const { r, g, b } = hexToRgb(accentHex)
   const fnt = FONTS.find((f) => f.id === selectedFont) ?? FONTS[0]
 
   return (
     <View className="flex-1 bg-background">
-      <Header
-        title={t('menuColors.title')}
-        action={saving ? <ActivityIndicator size="small" color={isDark ? '#FAFAFA' : '#111827'} /> : undefined}
-      />
+      <Header title={t('menuColors.title')} />
 
       <ScrollView
-        contentContainerStyle={{
-          paddingHorizontal: 20,
-          paddingTop: 24,
-          paddingBottom: 24 + insets.bottom,
-          gap: 20,
-        }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 24 + insets.bottom, gap: 20 }}
       >
-
         {/* Font */}
         <View>
           <Text className="text-[11px] font-bold text-muted uppercase tracking-widest mb-3">
             {t('menuColors.fontSection')}
           </Text>
           <Select
-            options={FONTS.map((f) => ({
-              label: t(`menuColors.fonts.${f.id}`),
-              value: f.id,
-              style: f.style,
-            }))}
+            options={FONTS.map((f) => ({ label: t(`menuColors.fonts.${f.id}`), value: f.id, style: f.style }))}
             value={selectedFont}
-            onChange={(id) => handleFontChange(id as FontId)}
+            onChange={(id) => setSelectedFont(id as FontId)}
           />
         </View>
 
-        {/* Color */}
+        {/* Accent color */}
         <View>
           <Text className="text-[11px] font-bold text-muted uppercase tracking-widest mb-3">
             {t('menuColors.colorSection')}
           </Text>
-          <Text className="text-muted text-sm mb-4 leading-relaxed">
-            {t('menuColors.colorHint')}
-          </Text>
-          <View className="flex-row flex-wrap gap-4">
-            {PALETTES.map((p) => {
-              const selected = selectedPalette === p.id
-              return (
-                <Pressable
-                  key={p.id}
-                  onPress={() => handlePaletteChange(p.id)}
-                  style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
-                >
-                  <View
-                    style={{
-                      width: 44, height: 44, borderRadius: 22,
-                      backgroundColor: p.color,
-                      borderWidth: selected ? 3 : 2,
-                      borderColor: selected ? (isDark ? '#FAFAFA' : '#111827') : (isDark ? '#3F3F46' : '#E4E4E7'),
-                    }}
-                  />
-                </Pressable>
-              )
-            })}
-          </View>
+          <Card>
+            <View className="flex-row items-center gap-4">
+              <View
+                style={{
+                  width: 52, height: 52, borderRadius: 26,
+                  backgroundColor: accentHex,
+                  borderWidth: 3, borderColor: isDark ? '#3F3F46' : '#E4E4E7',
+                  shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4,
+                }}
+              />
+              <View className="flex-1">
+                <Text className="text-base font-semibold text-primary">{accentHex.toUpperCase()}</Text>
+                <Text className="text-xs text-muted mt-0.5">R {r} · G {g} · B {b}</Text>
+              </View>
+              <Pressable
+                onPress={() => setPickerOpen(true)}
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                className="px-4 py-2 rounded-xl bg-accent"
+              >
+                <Text className="text-white text-sm font-semibold">{t('menuColors.changeColor')}</Text>
+              </Pressable>
+            </View>
+          </Card>
         </View>
 
         {/* Banner */}
@@ -229,9 +186,7 @@ export default function MenuColorsScreen() {
           <Text className="text-[11px] font-bold text-muted uppercase tracking-widest mb-3">
             {t('menuColors.bannerSection')}
           </Text>
-          <Text className="text-muted text-sm mb-4 leading-relaxed">
-            {t('menuColors.bannerHint')}
-          </Text>
+          <Text className="text-muted text-sm mb-4 leading-relaxed">{t('menuColors.bannerHint')}</Text>
           <Pressable onPress={handleBannerPick} style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}>
             <View className="rounded-2xl overflow-hidden border-2 border-border bg-surface items-center justify-center" style={{ height: 140 }}>
               {bannerUrl ? (
@@ -258,35 +213,29 @@ export default function MenuColorsScreen() {
           <Text className="text-[11px] font-bold text-muted uppercase tracking-widest mb-3">
             {t('menuColors.previewSection')}
           </Text>
-          <View style={{ borderRadius: 16, overflow: 'hidden', backgroundColor: bannerUrl ? (isDark ? '#1E1E22' : '#FAFAFA') : pal.color }}>
-            {/* Header - solid accent color or banner */}
-            <View style={{ padding: 20, paddingBottom: 28, position: 'relative', backgroundColor: bannerUrl ? undefined : pal.color }}>
-              {bannerUrl && (
-                <Image source={{ uri: bannerUrl }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-              )}
-              {bannerUrl && (
-                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)' }} />
-              )}
+          <View style={{ borderRadius: 16, overflow: 'hidden' }}>
+            <View style={{ padding: 20, paddingBottom: 28, backgroundColor: accentHex, position: 'relative' }}>
+              {bannerUrl && <Image source={{ uri: bannerUrl }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />}
+              {bannerUrl && <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)' }} />}
               <View style={{ position: 'relative' }}>
                 <View style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.15)', marginBottom: 12, alignItems: 'center', justifyContent: 'center' }}>
                   <Text style={{ fontSize: 28, fontWeight: '700', color: '#fff' }}>
-                    {(restaurant?.name ?? t('menuColors.previewRestaurantFallback')).charAt(0).toUpperCase()}
+                    {(restaurant?.name ?? 'B').charAt(0).toUpperCase()}
                   </Text>
                 </View>
                 <Text style={[{ fontSize: 22, color: '#fff', lineHeight: 28 }, fnt.style]}>
-                  {restaurant?.name ?? t('menuColors.previewRestaurantFallback')}
+                  {restaurant?.name ?? 'Mi Bar'}
                 </Text>
                 <Text style={[{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 4 }, fnt.style]}>
                   {t('menuColors.previewSubtitle')}
                 </Text>
               </View>
             </View>
-            {/* Category badges */}
-            <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
+            <View style={{ paddingHorizontal: 16, paddingVertical: 12, backgroundColor: isDark ? '#1E1E22' : '#FAFAFA' }}>
               <View className="flex-row flex-wrap gap-2">
                 {[t('categories.title'), t('products.title'), t('menuColors.previewCategoryDesserts')].map((cat) => (
-                  <View key={cat} style={{ backgroundColor: pal.bg, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 }}>
-                    <Text style={[{ color: pal.color, fontWeight: '600', fontSize: 12 }, fnt.style]}>{cat}</Text>
+                  <View key={cat} style={{ backgroundColor: `rgba(${r},${g},${b},0.12)`, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 }}>
+                    <Text style={[{ color: accentHex, fontWeight: '600', fontSize: 12 }, fnt.style]}>{cat}</Text>
                   </View>
                 ))}
               </View>
@@ -294,7 +243,20 @@ export default function MenuColorsScreen() {
           </View>
         </View>
 
+        <Button label={t('menuColors.save')} onPress={handleSave} loading={saving} />
       </ScrollView>
+
+      <Toast message={toast.message} visible={toast.visible} />
+
+      <ColorPickerModal
+        visible={pickerOpen}
+        value={accentColor}
+        title={t('menuColors.colorSection')}
+        onClose={() => setPickerOpen(false)}
+        onConfirm={(color) => { setAccentColor(color); setPickerOpen(false); haptic.select() }}
+        isDark={isDark}
+        showAlpha={false}
+      />
     </View>
   )
 }

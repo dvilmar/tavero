@@ -9,7 +9,8 @@
     "edit": "Edit",
     "error": "Error",
     "change": "Change",
-    "totalCount": "{{count}} total"
+    "totalCount": "{{count}} total",
+    "confirm": "Confirm"
   },
   "login": {
     "tagline": "Manage your bar's menu",
@@ -145,7 +146,7 @@
     "nameLabel": "Bar name",
     "namePlaceholder": "The Corner Bar",
     "nameRequired": "Name is required",
-    "urlLabel": "Your public URL",
+    "urlLabel": "Menu URL",
     "urlNote": "Generated automatically from the name.",
     "descLabel": "Description (optional)",
     "descPlaceholder": "The best bar in town, with homemade tapas and local wines",
@@ -266,6 +267,8 @@
   "restaurantInfo": {
     "title": "Restaurant information",
     "subtitle": "Contact details and social media",
+    "menuUrlLabel": "Menu URL",
+    "copied": "URL copied",
     "phoneLabel": "Phone",
     "phonePlaceholder": "+1 555 123 4567",
     "addressLabel": "Address",
@@ -362,6 +365,8 @@
     "previewSubtitle": "Digital menu • Tapas & drinks",
     "previewRestaurantFallback": "My Restaurant",
     "previewCategoryDesserts": "Desserts",
+    "save": "Save changes",
+    "changeColor": "Change",
     "submit": "Save changes",
     "saved": "Appearance saved",
     "saveError": "Error saving",
@@ -405,6 +410,11 @@
     "frameSection": "Frame with text",
     "framePlaceholder": "Frame text",
     "defaultFrame": "Scan our menu",
+    "save": "Save changes",
+    "saved": "Preferences saved",
+    "colorsSection": "Colours",
+    "colorFg": "QR colour",
+    "colorBg": "Background colour",
     "share": "Share QR",
     "shareTitle": "Menu QR code"
   },

@@ -83,13 +83,11 @@ export default function LoginScreen() {
           </Pressable>
         </View>
 
-        <View className="mt-10 pt-6 border-t border-border items-center">
-          <Text className="text-muted text-sm">
-            {t('login.noAccount')}{' '}
-            <Text className="text-accent font-semibold" onPress={() => router.push('/(auth)/register')}>
-              {t('login.register')}
-            </Text>
-          </Text>
+        <View className="mt-10 pt-6 border-t border-border flex-row items-center justify-center gap-1">
+          <Text className="text-muted text-sm">{t('login.noAccount')}</Text>
+          <Pressable onPress={() => router.push('/(auth)/register')} hitSlop={8}>
+            <Text className="text-accent font-semibold text-sm">{t('login.register')}</Text>
+          </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

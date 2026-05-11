@@ -121,9 +121,7 @@ export function MenuClient({ restaurant, menus, banners, categories, productsByC
         />
       )}
 
-      {menus.length > 1 && (
-        <MenuTabs menus={menus} activeMenuId={activeMenuId} onSelect={setActiveMenuId} />
-      )}
+      {/* menus.length > 1 && <MenuTabs> disabled */}
 
       <CategoryNav categories={visibleCategories} />
 

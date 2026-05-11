@@ -55,12 +55,20 @@ export function ProductRowSkeleton() {
 
 export function CategoryRowSkeleton() {
   return (
-    <View className="bg-surface rounded-2xl p-4 mb-3 border border-borderSoft">
-      <View className="flex-row items-center justify-between mb-2">
-        <Skeleton width="40%" height={16} />
-        <Skeleton width={44} height={24} rounded="full" />
+    <View className="bg-surface rounded-2xl overflow-hidden mb-3.5 border border-borderSoft">
+      {/* Banner placeholder */}
+      <Skeleton width="100%" height={56} rounded="sm" />
+      {/* Body */}
+      <View className="p-3.5 gap-3">
+        <View className="flex-row items-center justify-between">
+          <Skeleton width="50%" height={13} />
+          <Skeleton width={44} height={24} rounded="full" />
+        </View>
+        <View className="flex-row gap-2">
+          <Skeleton width="48%" height={34} rounded="xl" />
+          <Skeleton width="48%" height={34} rounded="xl" />
+        </View>
       </View>
-      <Skeleton width="80%" height={11} />
     </View>
   )
 }

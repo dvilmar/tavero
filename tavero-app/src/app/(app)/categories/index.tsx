@@ -183,62 +183,92 @@ export default function CategoriesScreen() {
     )
   }
 
-  const renderItem = (cat: Category) => (
-    <View style={{ marginBottom: 12 }}>
-      <Card>
-        {(cat as any).image_url ? (
-          <View className="rounded-xl overflow-hidden mb-3" style={{ height: 80 }}>
-            <Image source={{ uri: (cat as any).image_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-          </View>
-        ) : null}
-        <View className="flex-row items-start">
-          <View className="flex-1 mr-3">
-            <View className="flex-row items-center gap-2 mb-1 flex-wrap">
-              <Text className={`font-semibold text-base ${cat.is_active ? 'text-primary' : 'text-mutedLight line-through'}`}>
-                {cat.name}
-              </Text>
-              <Badge
-                label={cat.is_active ? t('categories.active') : t('categories.hidden')}
-                variant={cat.is_active ? 'success' : 'muted'}
-              />
-              {(cat as any).menu_id && (() => {
-                const m = menus.find((x) => x.id === (cat as any).menu_id)
-                return m ? <Badge label={m.name} variant="info" /> : null
-              })()}
+  const renderItem = (cat: Category, index: number) => {
+    const count = productCounts.get(cat.id) ?? 0
+    const imageUri = (cat as any).image_url as string | null
+
+    return (
+      <View style={{ marginBottom: 14 }}>
+        <View
+          className={`rounded-2xl overflow-hidden border ${isDark ? 'bg-surface border-border' : 'bg-white border-zinc-100'}`}
+          style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: isDark ? 0.2 : 0.06, shadowRadius: 8, elevation: 3 }}
+        >
+          {/* Image banner or colored header */}
+          {imageUri ? (
+            <View style={{ height: 100 }}>
+              <Image source={{ uri: imageUri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+              <View style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.25)' }} />
+              <View style={{ position: 'absolute', bottom: 10, left: 14, right: 14, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 18, textShadowColor: 'rgba(0,0,0,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }} numberOfLines={1}>
+                  {cat.name}
+                </Text>
+                <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }}>
+                  <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>{count} {t('products.title').toLowerCase()}</Text>
+                </View>
+              </View>
             </View>
+          ) : (
+            <View style={{ height: 56, backgroundColor: isDark ? '#2A2A30' : '#F4F4F5', paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: isDark ? '#3A3A42' : '#E4E4E7', alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 16 }}>📂</Text>
+                </View>
+                <Text style={{ fontWeight: '700', fontSize: 16, color: isDark ? '#F9FAFB' : '#111', flex: 1 }} numberOfLines={1}>{cat.name}</Text>
+              </View>
+              <View style={{ backgroundColor: isDark ? '#3A3A42' : '#E4E4E7', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 }}>
+                <Text style={{ color: isDark ? '#9CA3AF' : '#6B7280', fontSize: 11, fontWeight: '600' }}>{count} {t('products.title').toLowerCase()}</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Body */}
+          <View style={{ padding: 14 }}>
+            {/* Description */}
             {cat.description ? (
-              <Text className="text-muted text-sm leading-relaxed">{cat.description}</Text>
+              <Text style={{ color: isDark ? '#9CA3AF' : '#6B7280', fontSize: 13, lineHeight: 19, marginBottom: 12 }} numberOfLines={2}>
+                {cat.description}
+              </Text>
             ) : null}
-            <Text className="text-muted text-xs mt-1">
-              {t('categories.productCount', { count: productCounts.get(cat.id) ?? 0 })}
-            </Text>
+
+            {/* Status row */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={{
+                  width: 8, height: 8, borderRadius: 4,
+                  backgroundColor: cat.is_active ? (isDark ? '#4ADE80' : '#22C55E') : '#9CA3AF',
+                }} />
+                <Text style={{ fontSize: 13, fontWeight: '500', color: cat.is_active ? (isDark ? '#86EFAC' : '#16A34A') : (isDark ? '#9CA3AF' : '#9CA3AF') }}>
+                  {cat.is_active ? t('categories.active') : t('categories.hidden')}
+                </Text>
+              </View>
+              <Switch
+                value={cat.is_active}
+                onValueChange={() => handleToggle(cat)}
+                trackColor={{ true: isDark ? '#FAFAFA' : '#111111', false: isDark ? '#4B5563' : '#E7E5E4' }}
+                thumbColor={isDark ? '#F3F4F6' : '#FFFFFF'}
+              />
+            </View>
+
+            {/* Action buttons */}
+            <View className="flex-row gap-2">
+              <Button label={t('common.edit')} onPress={() => openEdit(cat)} variant="secondary" className="flex-1 py-2" />
+              <Pressable
+                onPress={() => handleDelete(cat)}
+                className={`flex-1 py-2 rounded-xl border items-center justify-center ${
+                  isDark ? 'bg-surface border-red-300' : 'bg-red-100 border-red-200'
+                }`}
+                style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
+              >
+                <Text className={`font-semibold text-base ${isDark ? 'text-red-200' : 'text-red-700'}`}>
+                  {t('common.delete')}
+                </Text>
+              </Pressable>
+            </View>
           </View>
-
-          <Switch
-            value={cat.is_active}
-            onValueChange={() => handleToggle(cat)}
-            trackColor={{ true: isDark ? '#FAFAFA' : '#111111', false: isDark ? '#4B5563' : '#E7E5E4' }}
-            thumbColor={isDark ? '#F3F4F6' : '#FFFFFF'}
-          />
         </View>
-
-        <View className="flex-row gap-2 mt-4 pt-4 border-t border-borderSoft">
-          <Button label={t('common.edit')} onPress={() => openEdit(cat)} variant="secondary" className="flex-1 py-2" />
-          <Pressable
-            onPress={() => handleDelete(cat)}
-            className={`flex-1 py-2 rounded-xl border items-center justify-center ${
-              isDark ? 'bg-surface border-red-300' : 'bg-red-100 border-red-200'
-            }`}
-            style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
-          >
-            <Text className={`font-semibold text-base ${isDark ? 'text-red-200' : 'text-red-700'}`}>
-              {t('common.delete')}
-            </Text>
-          </Pressable>
-        </View>
-      </Card>
-    </View>
-  )
+      </View>
+    )
+  }
 
   return (
     <View className="flex-1 bg-background">
@@ -255,7 +285,7 @@ export default function CategoriesScreen() {
           contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 96 }}
           showsVerticalScrollIndicator={false}
         >
-          {categories.map((cat) => <Fragment key={cat.id}>{renderItem(cat)}</Fragment>)}
+          {categories.map((cat, i) => <Fragment key={cat.id}>{renderItem(cat, i)}</Fragment>)}
         </ScrollView>
       )}
 
@@ -303,38 +333,7 @@ export default function CategoriesScreen() {
               onChangeText={(v) => setForm((f) => ({ ...f, description: sanitizeText(v, 200) }))}
               placeholder={t('categories.descPlaceholder')} multiline />
 
-            {menus.length > 0 && (
-              <View>
-                <Text className="text-sm font-medium text-muted mb-2">{t('categories.menuLabel')}</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                  <Pressable
-                    onPress={() => setMenuId(null)}
-                    style={{
-                      paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-                      backgroundColor: menuId === null ? (isDark ? '#FAFAFA' : '#111111') : (isDark ? '#292524' : '#F5F5F4'),
-                    }}
-                  >
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: menuId === null ? (isDark ? '#111111' : '#FAFAFA') : (isDark ? '#A8A29E' : '#78716C') }}>
-                      {t('categories.menuAll')}
-                    </Text>
-                  </Pressable>
-                  {menus.map((m) => (
-                    <Pressable
-                      key={m.id}
-                      onPress={() => setMenuId(m.id)}
-                      style={{
-                        paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-                        backgroundColor: menuId === m.id ? (isDark ? '#FAFAFA' : '#111111') : (isDark ? '#292524' : '#F5F5F4'),
-                      }}
-                    >
-                      <Text style={{ fontSize: 13, fontWeight: '600', color: menuId === m.id ? (isDark ? '#111111' : '#FAFAFA') : (isDark ? '#A8A29E' : '#78716C') }}>
-                        {m.name}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
+            {/* menus.length > 0 && (...menu picker disabled...) */}
 
             <Button label={t('categories.save')} onPress={handleSave} loading={saving || uploading} className="mt-2" />
           </View>

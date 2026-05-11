@@ -1,5 +1,6 @@
 import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import { Ionicons } from '@expo/vector-icons'
 import { Svg, Path, Circle } from 'react-native-svg'
 
 type Props = {
@@ -52,6 +53,19 @@ export function ImagePickerField({ label, imageUrl, onPress, uploading, aspectRa
             {!uploading && !circular && (
               <View className="absolute bottom-1 right-1 bg-black/60 rounded-full min-h-5 px-2 items-center justify-center">
                 <Text className="text-white text-[10px] font-medium text-center leading-3">{t('common.change')}</Text>
+              </View>
+            )}
+            {!uploading && circular && (
+              <View
+                style={{
+                  position: 'absolute', bottom: 0, right: 0,
+                  width: 26, height: 26, borderRadius: 13,
+                  backgroundColor: '#111827',
+                  alignItems: 'center', justifyContent: 'center',
+                  borderWidth: 2, borderColor: '#fff',
+                }}
+              >
+                <Ionicons name="pencil" size={12} color="#fff" />
               </View>
             )}
           </View>

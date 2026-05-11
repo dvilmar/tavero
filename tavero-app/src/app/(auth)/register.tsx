@@ -119,13 +119,11 @@ export default function RegisterScreen() {
           <Button label={t('register.submit')} onPress={handleRegister} loading={loading} className="mt-2" />
         </View>
 
-        <View className="mt-10 pt-6 border-t border-border items-center">
-          <Text className="text-muted text-sm">
-            {t('register.hasAccount')}{' '}
-            <Text className="text-accent font-semibold" onPress={() => router.back()}>
-              {t('register.signIn')}
-            </Text>
-          </Text>
+        <View className="mt-10 pt-6 border-t border-border flex-row items-center justify-center gap-1">
+          <Text className="text-muted text-sm">{t('register.hasAccount')}</Text>
+          <Pressable onPress={() => router.back()} hitSlop={8}>
+            <Text className="text-accent font-semibold text-sm">{t('register.signIn')}</Text>
+          </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

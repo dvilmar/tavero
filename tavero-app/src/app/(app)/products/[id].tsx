@@ -6,12 +6,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams, router } from 'expo-router'
 import { useTranslation } from 'react-i18next'
-import { useColorScheme } from 'nativewind'
+import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '@/lib/supabase'
 import { pickImage, uploadImage } from '@/lib/storage'
 import { sanitizeText } from '@/lib/utils'
 import { createProductSchema } from '@/lib/validation'
 import { useRestaurant } from '@/context/RestaurantContext'
+import { haptic } from '@/lib/haptics'
+import { useTheme } from '@/context/ThemeContext'
 import { Button } from '@/components/ui/Button'
 import { Header } from '@/components/ui/Header'
 import { Input } from '@/components/ui/Input'
@@ -51,8 +53,8 @@ export default function ProductEditScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const isNew = id === 'new'
   const { restaurant } = useRestaurant()
-  const { colorScheme } = useColorScheme()
-  const isDark = colorScheme === 'dark'
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
   const productSchema = createProductSchema(t)
@@ -160,12 +162,14 @@ export default function ProductEditScreen() {
   }, [loadCategories, loadAllergens, loadProduct])
 
   const toggleDay = (day: number) => {
+    haptic.select()
     setAvailableDays((prev) =>
       prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
     )
   }
 
   const toggleAllergen = (allergenId: string) => {
+    haptic.select()
     setSelectedAllergens((prev) => {
       const next = new Map(prev)
       if (!next.has(allergenId)) {
@@ -180,6 +184,7 @@ export default function ProductEditScreen() {
   }
 
   const toggleLabel = (label: string) => {
+    haptic.select()
     setSelectedLabels((prev) => {
       const next = new Set(prev)
       if (next.has(label)) next.delete(label)
@@ -189,6 +194,7 @@ export default function ProductEditScreen() {
   }
 
   const addVariant = () => {
+    haptic.light()
     setVariants((prev) => [...prev, { name: '', price: '', sort_order: prev.length }])
   }
 
@@ -357,43 +363,6 @@ export default function ProductEditScreen() {
     ])
   }
 
-  const handleDuplicate = async () => {
-    if (!restaurant || !categoryId) return
-    const basePrice = variants.length > 0
-      ? (parseFloat(variants[0].price.replace(',', '.')) || 0)
-      : parseFloat(price.replace(',', '.'))
-    const nextSortOrder = await getNextSortOrder(categoryId)
-    const { data, error } = await supabase.from('products').insert({
-      name: `${name} (${t('products.copy')})`,
-      description: description.trim() || null,
-      price: basePrice,
-      category_id: categoryId,
-      restaurant_id: restaurant.id,
-      image_url: imageUrl,
-      sort_order: nextSortOrder,
-    }).select('id').single()
-    if (error) { Alert.alert(t('common.error'), error.message); return }
-    const newId = data.id
-    // Copy availability
-    const daysToSave = availableDays.length === 7 ? [] : availableDays
-    if (daysToSave.length > 0) {
-      await supabase.from('product_availability').insert(daysToSave.map((d) => ({ product_id: newId, day_of_week: d })))
-    }
-    // Copy allergens
-    const allergenInserts = Array.from(selectedAllergens.entries()).map(([allergen_id, type]) => ({ product_id: newId, allergen_id, type }))
-    if (allergenInserts.length > 0) await supabase.from('product_allergens').insert(allergenInserts)
-    // Copy labels
-    const labelInserts = Array.from(selectedLabels).map((label) => ({ product_id: newId, label }))
-    if (labelInserts.length > 0) await supabase.from('product_labels').insert(labelInserts)
-    // Copy variants
-    const validVariants = variants.filter((v) => v.name.trim() && v.price.trim())
-    if (validVariants.length > 0) {
-      await supabase.from('product_variants').insert(validVariants.map((v, i) => ({ product_id: newId, name: v.name.trim(), price: parseFloat(v.price.replace(',', '.')), sort_order: i })))
-    }
-    toast.show(t('products.duplicated'))
-    setTimeout(() => router.replace(`/(app)/products/${newId}`), 400)
-  }
-
   if (loading) {
     return (
       <View className="flex-1 bg-background items-center justify-center">
@@ -410,14 +379,9 @@ export default function ProductEditScreen() {
       <Header
         title={isNew ? t('products.newTitle') : t('products.editTitle')}
         action={!isNew ? (
-          <View className="flex-row items-center gap-4">
-            <Pressable onPress={handleDuplicate} accessibilityRole="button" accessibilityLabel={t('products.duplicate')}>
-              <Text className="text-primary font-semibold text-sm">{t('products.duplicate')}</Text>
-            </Pressable>
-            <Pressable onPress={handleDelete} accessibilityRole="button" accessibilityLabel={t('common.delete')}>
-              <Text className="text-danger font-semibold text-sm">{t('common.delete')}</Text>
-            </Pressable>
-          </View>
+          <Pressable onPress={handleDelete} accessibilityRole="button" accessibilityLabel={t('common.delete')}>
+            <Text className="text-danger font-semibold text-sm">{t('common.delete')}</Text>
+          </Pressable>
         ) : undefined}
       />
 
@@ -485,7 +449,7 @@ export default function ProductEditScreen() {
                     style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                     className={`px-4 py-2.5 rounded-full border-2 ${
                       selected
-                        ? 'bg-zinc-900 border-zinc-900'
+                        ? 'bg-accent border-accent'
                         : 'bg-surface border-border'
                     }`}
                   >
@@ -513,7 +477,7 @@ export default function ProductEditScreen() {
                   onPress={() => toggleLabel(label)}
                   className={`flex-row items-center gap-1.5 px-3 py-2 rounded-full border ${
                     active
-                      ? 'bg-zinc-900 border-zinc-900'
+                      ? 'bg-accent border-accent'
                       : 'bg-surface border-border'
                   }`}
                 >
@@ -595,18 +559,20 @@ export default function ProductEditScreen() {
                 />
               </View>
               <Pressable
-                onPress={() => removeVariant(index)}
-                className="w-10 h-10 items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20"
+                onPress={() => { haptic.light(); removeVariant(index) }}
+                className={`w-10 h-10 items-center justify-center rounded-xl ${isDark ? 'bg-red-900/30' : 'bg-red-50'}`}
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               >
-                <Text className="text-red-500 dark:text-red-400 text-lg">✕</Text>
+                <Ionicons name="trash-outline" size={17} color={isDark ? '#FCA5A5' : '#DC2626'} />
               </Pressable>
             </View>
           ))}
           <Pressable
             onPress={addVariant}
             className="flex-row items-center justify-center gap-2 py-3 rounded-xl bg-accent border border-accent"
+            style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
           >
-            <Text className="text-white text-lg font-bold">+</Text>
+            <Ionicons name="add" size={18} color="#fff" />
             <Text className="text-sm font-semibold text-white">{t('products.addVariant')}</Text>
           </Pressable>
         </Card>
@@ -623,12 +589,10 @@ export default function ProductEditScreen() {
                   key={day.value}
                   onPress={() => toggleDay(day.value)}
                   className={`items-center justify-center w-10 h-10 rounded-full border ${
-                    active
-                      ? (isDark ? 'bg-zinc-200 border-zinc-200' : 'bg-zinc-900 border-zinc-900')
-                      : 'bg-surface border-border'
+                    active ? 'bg-accent border-accent' : 'bg-surface border-border'
                   }`}
                 >
-                  <Text className={`text-xs font-semibold ${active ? (isDark ? 'text-zinc-900' : 'text-white') : 'text-muted'}`}>
+                  <Text className={`text-xs font-semibold ${active ? 'text-white' : 'text-muted'}`}>
                     {t(`products.days.${day.key}`)}
                   </Text>
                 </Pressable>

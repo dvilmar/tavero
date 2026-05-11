@@ -9,7 +9,8 @@
     "edit": "Editar",
     "error": "Error",
     "change": "Cambiar",
-    "totalCount": "{{count}} en total"
+    "totalCount": "{{count}} en total",
+    "confirm": "Confirmar"
   },
   "login": {
     "tagline": "Gestiona el menú de tu bar",
@@ -145,7 +146,7 @@
     "nameLabel": "Nombre del bar",
     "namePlaceholder": "Bar El Rincón",
     "nameRequired": "El nombre es obligatorio",
-    "urlLabel": "Tu URL pública",
+    "urlLabel": "URL del menú",
     "urlNote": "Generada automáticamente a partir del nombre.",
     "descLabel": "Descripción (opcional)",
     "descPlaceholder": "El mejor bar del barrio, con tapas caseras y vinos de la tierra",
@@ -266,6 +267,8 @@
   "restaurantInfo": {
     "title": "Información del restaurante",
     "subtitle": "Datos de contacto y redes sociales",
+    "menuUrlLabel": "URL del menú",
+    "copied": "URL copiada",
     "phoneLabel": "Teléfono",
     "phonePlaceholder": "+34 612 345 678",
     "addressLabel": "Dirección",
@@ -287,7 +290,7 @@
     "websitePlaceholder": "https://mibar.com",
     "whatsappLabel": "WhatsApp",
     "whatsappPlaceholder": "+34612345678",
-    "whatsappOrderHint": "Activa los pedidos por WhatsApp en tu menú digital — los clientes pueden añadir platos y enviar el pedido directamente.",
+    "whatsappOrderHint": "Activa los pedidos por WhatsApp en tu menú digital, los clientes pueden añadir platos y enviar el pedido directamente.",
     "submit": "Guardar información",
     "saved": "Información guardada"
   },
@@ -362,6 +365,8 @@
     "previewSubtitle": "Carta digital • Tapas y bebidas",
     "previewRestaurantFallback": "Mi Restaurante",
     "previewCategoryDesserts": "Postres",
+    "save": "Guardar cambios",
+    "changeColor": "Cambiar",
     "submit": "Guardar cambios",
     "saved": "Apariencia guardada",
     "saveError": "Error al guardar",
@@ -405,6 +410,11 @@
     "frameSection": "Marco con texto",
     "framePlaceholder": "Texto del marco",
     "defaultFrame": "Escanea nuestro menú",
+    "save": "Guardar cambios",
+    "saved": "Preferencias guardadas",
+    "colorsSection": "Colores",
+    "colorFg": "Color del QR",
+    "colorBg": "Color de fondo",
     "share": "Compartir QR",
     "shareTitle": "Código QR del menú"
   },
@@ -415,7 +425,7 @@
     "percentagePlaceholder": "Ej: 5 o -3",
     "percentageHint": "Positivo = subir precios, negativo = bajar precios",
     "categoryFilter": "Filtrar por categoría",
-    "allCategories": "Todas",
+    "allCategories": "Todas las categorías",
     "roundingLabel": "Redondeo",
     "roundNone": "Sin redondeo",
     "round05": "Redondear a 0,05 €",

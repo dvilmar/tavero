@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { useTranslation } from 'react-i18next'
-import { useColorScheme } from 'nativewind'
 import { supabase } from '@/lib/supabase'
 import { useRestaurant } from '@/context/RestaurantContext'
+import { haptic } from '@/lib/haptics'
 import { Header } from '@/components/ui/Header'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
@@ -19,8 +19,6 @@ type RoundingMode = 'none' | 'round_05' | 'round_10'
 export default function BulkPricesScreen() {
   const { restaurant } = useRestaurant()
   const { t } = useTranslation()
-  const { colorScheme } = useColorScheme()
-  const isDark = colorScheme === 'dark'
   const toast = useToast()
 
   const [categories, setCategories] = useState<Category[]>([])
@@ -162,10 +160,10 @@ export default function BulkPricesScreen() {
           <Text className="text-sm font-semibold text-primary mb-3">{t('bulkPrices.categoryFilter')}</Text>
           <View className="flex-row flex-wrap gap-2">
             <Pressable
-              onPress={() => setSelectedCategoryId(null)}
+              onPress={() => { setSelectedCategoryId(null); haptic.select() }}
               className={`px-4 py-2.5 rounded-full border-2 ${
                 selectedCategoryId === null
-                  ? 'bg-zinc-900 border-zinc-900'
+                  ? 'bg-accent border-accent'
                   : 'bg-surface border-border'
               }`}
             >
@@ -180,10 +178,10 @@ export default function BulkPricesScreen() {
               return (
                 <Pressable
                   key={cat.id}
-                  onPress={() => setSelectedCategoryId(cat.id)}
+                  onPress={() => { setSelectedCategoryId(cat.id); haptic.select() }}
                   className={`px-4 py-2.5 rounded-full border-2 ${
                     selected
-                      ? 'bg-zinc-900 border-zinc-900'
+                      ? 'bg-accent border-accent'
                       : 'bg-surface border-border'
                   }`}
                 >
@@ -207,7 +205,7 @@ export default function BulkPricesScreen() {
             ]).map((opt) => (
               <Pressable
                 key={opt.id}
-                onPress={() => setRounding(opt.id)}
+                onPress={() => { setRounding(opt.id); haptic.select() }}
                 className={`flex-row items-center justify-between px-4 py-3 rounded-xl border ${
                   rounding === opt.id ? 'border-accent bg-accentSoft' : 'border-border bg-surface'
                 }`}

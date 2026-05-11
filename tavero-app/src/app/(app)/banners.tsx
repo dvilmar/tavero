@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  Alert, Pressable, ScrollView, Text, TextInput, View,
+  ActivityIndicator, Alert, Pressable, ScrollView, Text, TextInput, View,
 } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useColorScheme } from 'nativewind'
+import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '@/lib/supabase'
 import { useRestaurant } from '@/context/RestaurantContext'
+import { haptic } from '@/lib/haptics'
 import { Header } from '@/components/ui/Header'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -15,7 +17,6 @@ import { Toast } from '@/components/ui/Toast'
 import { useToast } from '@/hooks/useToast'
 import { DESIGN_TOKENS } from '@/lib/designTokens'
 import { sanitizeText } from '@/lib/utils'
-import { ActivityIndicator } from 'react-native'
 
 type BannerRow = {
   id: string
@@ -93,6 +94,7 @@ export default function BannersScreen() {
     }
 
     setSaving(false)
+    haptic.success()
     resetForm()
     toast.show(editingId ? t('banners.updated') : t('banners.created'))
     loadBanners()
@@ -108,6 +110,7 @@ export default function BannersScreen() {
   }
 
   const handleToggle = async (banner: BannerRow) => {
+    haptic.select()
     await (supabase as any)
       .from('restaurant_banners')
       .update({ is_active: !banner.is_active })
@@ -150,15 +153,21 @@ export default function BannersScreen() {
           />
         ) : (
           banners.map((banner) => (
-            <Card key={banner.id} className="gap-2">
+            <Card key={banner.id} className="gap-2" style={{ opacity: banner.is_active ? 1 : 0.55 }}>
               {/* Preview */}
               <View
-                className="rounded-xl px-4 py-3 mb-1"
+                className="rounded-xl px-4 py-3 mb-1 overflow-hidden"
                 style={{ backgroundColor: banner.bg_color }}
               >
                 <Text className="text-sm font-medium text-center" style={{ color: banner.text_color }}>
                   {banner.text}
                 </Text>
+                {!banner.is_active && (
+                  <View className="absolute top-1.5 right-1.5 bg-black/40 rounded-full px-2 py-0.5 flex-row items-center gap-1">
+                    <Ionicons name="eye-off-outline" size={10} color="#fff" />
+                    <Text style={{ color: '#fff', fontSize: 9, fontWeight: '700' }}>{t('categories.hidden').toUpperCase()}</Text>
+                  </View>
+                )}
               </View>
 
               {banner.link_url ? (
@@ -167,24 +176,29 @@ export default function BannersScreen() {
 
               <View className="flex-row gap-2 mt-1">
                 <Pressable
-                  onPress={() => handleEdit(banner)}
+                  onPress={() => { haptic.light(); handleEdit(banner) }}
                   className="flex-1 items-center py-2 rounded-lg bg-surface border border-border"
+                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                 >
                   <Text className="text-xs font-semibold text-primary">{t('common.edit')}</Text>
                 </Pressable>
                 <Pressable
                   onPress={() => handleToggle(banner)}
-                  className="flex-1 items-center py-2 rounded-lg bg-surface border border-border"
+                  className={`flex-1 items-center py-2 rounded-lg border ${
+                    banner.is_active ? 'bg-surface border-border' : 'bg-accentSoft border-accent/30'
+                  }`}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                 >
-                  <Text className="text-xs font-semibold text-primary">
+                  <Text className={`text-xs font-semibold ${banner.is_active ? 'text-primary' : 'text-accent'}`}>
                     {banner.is_active ? t('banners.hide') : t('banners.show')}
                   </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => handleDelete(banner)}
-                  className="items-center px-3 py-2 rounded-lg bg-red-50 dark:bg-red-900/20"
+                  className={`items-center px-3 py-2 rounded-lg ${isDark ? 'bg-surface border border-red-800' : 'bg-red-50 border border-red-200'}`}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                 >
-                  <Text className="text-xs font-semibold text-red-600 dark:text-red-400">{t('common.delete')}</Text>
+                  <Ionicons name="trash-outline" size={15} color={isDark ? '#FCA5A5' : '#DC2626'} />
                 </Pressable>
               </View>
             </Card>

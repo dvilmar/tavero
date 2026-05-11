@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react'
-import { Animated, Text, useColorScheme } from 'react-native'
+import { Animated, Text } from 'react-native'
+import { useTheme } from '@/context/ThemeContext'
 
 type Props = { message: string; visible: boolean }
 
 export function Toast({ message, visible }: Props) {
-  const { colorScheme } = useColorScheme()
-  const isDark = colorScheme === 'dark'
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
   const opacity = useRef(new Animated.Value(0)).current
   const translateY = useRef(new Animated.Value(20)).current
 

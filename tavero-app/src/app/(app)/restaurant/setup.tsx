@@ -70,7 +70,7 @@ export default function RestaurantSetupScreen() {
       }
       const { error } = await supabase
         .from('restaurants')
-        .update({ name, description, slug: finalSlug })
+        .update({ name, description, slug: finalSlug, is_active: true })
         .eq('id', restaurant.id)
       if (error) {
         setServerError(error.code === '23505' ? t('setup.slugConflict') : error.message)
@@ -106,7 +106,7 @@ export default function RestaurantSetupScreen() {
       }
       const { data, error } = await supabase
         .from('restaurants')
-        .insert({ user_id: user.id, name, slug: finalSlug, description })
+        .insert({ user_id: user.id, name, slug: finalSlug, description, is_active: true })
         .select('id')
         .single()
       if (error) {
@@ -169,7 +169,7 @@ export default function RestaurantSetupScreen() {
         <View className="gap-1.5">
           <Text className="text-sm font-medium text-primary">{t('setup.urlLabel')}</Text>
           <View className="bg-borderSoft border border-border rounded-xl px-4 py-3">
-            <Text className="text-sm text-muted" numberOfLines={1}>{previewUrl}</Text>
+            <Text className="text-sm text-muted" numberOfLines={1} selectable>{previewUrl}</Text>
           </View>
           <Text className="text-xs text-muted">{t('setup.urlNote')}</Text>
         </View>

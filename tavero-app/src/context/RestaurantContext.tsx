@@ -36,6 +36,10 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
       setLoading(false)
       return
     }
+    if (data && !data.is_active) {
+      supabase.from('restaurants').update({ is_active: true }).eq('id', data.id)
+      data.is_active = true
+    }
     setRestaurant(data ?? null)
     setLoading(false)
   }, [user])

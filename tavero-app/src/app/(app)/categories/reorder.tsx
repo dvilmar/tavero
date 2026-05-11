@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useRestaurant } from '@/context/RestaurantContext'
 import { haptic } from '@/lib/haptics'
+import { useTheme } from '@/context/ThemeContext'
 import { Header } from '@/components/ui/Header'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -39,6 +40,8 @@ function ArrowDownIcon({ color }: { color: string }) {
 export default function CategoriesReorderScreen() {
   const { restaurant } = useRestaurant()
   const { t } = useTranslation()
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
   const toast = useToast()
   const [categories, setCategories] = useState<CategoryRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -113,7 +116,7 @@ export default function CategoriesReorderScreen() {
               disabled={index === 0}
               style={{ opacity: index === 0 ? 0.3 : 1, padding: 10 }}
             >
-              <ArrowUpIcon color="#0A0A0A" />
+              <ArrowUpIcon color={isDark ? '#F9FAFB' : '#0A0A0A'} />
             </Pressable>
 
             <Pressable
@@ -121,7 +124,7 @@ export default function CategoriesReorderScreen() {
               disabled={index === categories.length - 1}
               style={{ opacity: index === categories.length - 1 ? 0.3 : 1, padding: 10 }}
             >
-              <ArrowDownIcon color="#0A0A0A" />
+              <ArrowDownIcon color={isDark ? '#F9FAFB' : '#0A0A0A'} />
             </Pressable>
           </View>
         </View>

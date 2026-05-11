@@ -151,7 +151,7 @@ export default function ProductsScreen() {
               ) : product.description ? (
                 <Text className="text-muted text-xs mt-0.5" numberOfLines={1}>{product.description}</Text>
               ) : null}
-              <Text className={`font-bold text-sm mt-1 ${isDark ? 'text-white' : 'text-zinc-500'}`}>
+              <Text className="font-bold text-sm mt-1 text-accent">
                 {moneyFormatter.format(Number(product.price))}
               </Text>
             </Pressable>
@@ -190,7 +190,7 @@ export default function ProductsScreen() {
           />
           {search.length > 0 && (
             <Pressable onPress={() => setSearch('')} hitSlop={8}>
-              <Text className="text-muted text-base">✕</Text>
+              <Ionicons name="close-circle" size={18} color="#94A3B8" />
             </Pressable>
           )}
         </View>
@@ -214,7 +214,7 @@ export default function ProductsScreen() {
                 selectedCatId === null
                   ? isDark ? 'text-zinc-900' : 'text-white'
                   : 'text-muted'
-              }`}>{t('categories.menuAll')}</Text>
+              }`}>{t('categories.allCategories')}</Text>
             </Pressable>
             {sections.map((s) => {
               const active = selectedCatId === s.catId
